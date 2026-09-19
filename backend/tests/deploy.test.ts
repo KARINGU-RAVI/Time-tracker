@@ -66,7 +66,8 @@ describe('netlify.toml', () => {
     const csp = all['Content-Security-Policy']!;
     const directive = (name: string) => csp.split(';').map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) ?? '';
     expect(directive('default-src')).toBe("default-src 'self'");
-    expect(directive('script-src')).toBe("script-src 'self' https://accounts.google.com/gsi/client");
+    expect(directive('script-src')).toBe("script-src 'self' https://accounts.google.com/gsi/client https://challenges.cloudflare.com");
+    expect(directive('frame-src')).toContain('https://challenges.cloudflare.com'); // the human check widget
     expect(csp).not.toMatch(/unsafe-eval/);
     expect(directive('script-src')).not.toMatch(/unsafe-inline/);
     expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");

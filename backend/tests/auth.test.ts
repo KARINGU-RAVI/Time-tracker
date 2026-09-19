@@ -49,6 +49,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // These tests use a fixed clock and one local address, so their sign-in counters would otherwise pile up across runs.
+  await prisma.$executeRaw`DELETE FROM "RateLimit" WHERE "key" LIKE 'google:ip:%' AND "key" NOT LIKE '%10.99.%'`;
   await prisma.user.deleteMany({ where: { email } });
   await prisma.$disconnect();
 });

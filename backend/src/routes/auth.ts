@@ -84,7 +84,7 @@ export function authRoutes(prisma: PrismaClient, cfg: AuthConfig, authenticate: 
     const token = await signSession({ userId: user.id, email: user.email, version: user.sessionVersion }, cfg.sessionSecret);
     setSessionCookie(res, token, cfg.secureCookies);
   };
-  const publicUser = (u: User) => ({ email: u.email, name: u.name, setupComplete: u.setupCompletedAt !== null, isAdmin: u.isAdmin });
+  const publicUser = (u: User) => ({ email: u.email, name: u.name, setupComplete: u.setupCompletedAt !== null, isAdmin: u.isAdmin, hasPassword: u.passwordHash !== null });
 
   /** Sends mail without letting a provider failure reveal (or break) anything for the caller. */
   const trySend = async (mail: { to: string; subject: string; text: string }) => {

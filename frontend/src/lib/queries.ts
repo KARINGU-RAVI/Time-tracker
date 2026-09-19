@@ -188,7 +188,9 @@ export function useImportCommit() {
 }
 
 /** Who is signed in. 404 means the backend runs in dev mode (no sign-in). */
-export type SessionState = { mode: 'dev' } | { mode: 'google'; email: string };
+export type SessionState =
+  | { mode: 'dev' }
+  | { mode: 'google'; email: string; name: string | null; setupComplete: boolean; isAdmin: boolean; hasPassword: boolean };
 
 export function useSession() {
   return useQuery<SessionState, ApiError>({
@@ -197,8 +199,9 @@ export function useSession() {
     staleTime: Infinity,
     queryFn: async () => {
       try {
-        const r = await get<{ user: { email: string } }>('/auth/me');
-        return { mode: 'google', email: r.user.email };
+        const r = await get<{ user: { email: string; name?: string | null; setupComplete?: boolean; isAdmin?: boolean; hasPassword?: boolean } }>('/auth/me');
+        // The server gates every route until setup is done, so treating "unknown" as done cannot open anything.
+        return { mode: 'google', email: r.user.email, name: r.user.name ?? null, setupComplete: r.user.setupComplete !== false, isAdmin: r.user.isAdmin === true, hasPassword: r.user.hasPassword === true };
       } catch (e) {
         if (e instanceof ApiError && e.status === 404) return { mode: 'dev' };
         throw e;

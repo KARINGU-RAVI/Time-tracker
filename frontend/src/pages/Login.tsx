@@ -1,75 +1,139 @@
-import { useEffect, useRef, useState } from 'react';
-import { Clock } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Banner, Card } from '@/components/ui/primitives';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { googleConfigured, GoogleButton } from '@/components/auth/GoogleButton';
+import { PasswordField } from '@/components/auth/PasswordField';
+import { Turnstile, turnstileRequired } from '@/components/auth/Turnstile';
+import { Button } from '@/components/ui/button';
+import { Field, TextInput } from '@/components/ui/form';
+import { Banner } from '@/components/ui/primitives';
 import { ApiError, post } from '@/lib/api';
+import { cn } from '@/lib/cn';
+import CheckEmail from '@/pages/auth/CheckEmail';
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-
-interface GoogleId {
-  initialize: (o: { client_id: string; callback: (r: { credential: string }) => void }) => void;
-  renderButton: (el: HTMLElement, o: Record<string, unknown>) => void;
-}
-declare global {
-  interface Window {
-    google?: { accounts: { id: GoogleId } };
-  }
-}
-
-function loadGoogleScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (window.google) return resolve();
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Could not load Google sign-in.'));
-    document.head.appendChild(s);
-  });
-}
+type Mode = 'signin' | 'signup';
 
 export default function Login() {
   const qc = useQueryClient();
-  const holder = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(CLIENT_ID ? null : 'Google sign-in is not configured (VITE_GOOGLE_CLIENT_ID is missing).');
+  const [mode, setMode] = useState<Mode>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [token, setToken] = useState<string | null>(null);
+  const [resetSignal, setResetSignal] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!CLIENT_ID) return;
-    let cancelled = false;
-    loadGoogleScript()
-      .then(() => {
-        if (cancelled || !window.google || !holder.current) return;
-        window.google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          callback: async ({ credential }) => {
-            try {
-              await post('/auth/google', { credential });
-              await qc.invalidateQueries();
-            } catch (e) {
-              setError(e instanceof ApiError ? e.message : 'Sign-in failed. Please try again.');
-            }
-          },
-        });
-        window.google.accounts.id.renderButton(holder.current, { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with', width: 280 });
-      })
-      .catch((e: Error) => setError(e.message));
-    return () => {
-      cancelled = true;
-    };
-  }, [qc]);
+  if (sentTo) return <CheckEmail email={sentTo} onBack={() => setSentTo(null)} />;
+
+  const signup = mode === 'signup';
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError(null);
+    setConfirmError(null);
+    setPassword('');
+    setConfirm('');
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setConfirmError(null);
+    if (signup && password !== confirm) {
+      setConfirmError('The two passwords do not match.');
+      return;
+    }
+    setBusy(true);
+    try {
+      if (signup) {
+        await post('/auth/register', { email, password, turnstileToken: token ?? undefined });
+        setSentTo(email.trim());
+      } else {
+        await post('/auth/login', { email, password });
+        await qc.invalidateQueries();
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED') {
+        setSentTo(email.trim());
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      }
+    } finally {
+      setBusy(false);
+      if (signup) setResetSignal((n) => n + 1);
+    }
+  }
+
+  const blocked = busy || !email || !password || (signup && (!confirm || (turnstileRequired && !token)));
 
   return (
-    <div className="grid min-h-screen place-items-center p-4">
-      <Card className="w-full max-w-sm p-8 text-center">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary text-on-primary">
-          <Clock size={28} aria-hidden />
-        </div>
-        <h1 className="mt-4 text-2xl font-semibold">Office Hours</h1>
-        <p className="mt-1 text-sm text-ink-soft">Your personal working-hours tracker</p>
-        {error && <Banner tone="bad" className="mt-4 text-left">{error}</Banner>}
-        <div ref={holder} className="mt-6 flex justify-center" />
-        <p className="mt-6 text-xs text-ink-soft">Only the authorised Google account can sign in.</p>
-      </Card>
-    </div>
+    <AuthLayout>
+      <div role="tablist" aria-label="Sign in or create an account" className="grid grid-cols-2 rounded-full bg-muted p-1">
+        {(['signin', 'signup'] as const).map((m) => (
+          <button
+            key={m}
+            role="tab"
+            type="button"
+            aria-selected={mode === m}
+            onClick={() => switchMode(m)}
+            className={cn('h-10 rounded-full text-sm font-medium', mode === m ? 'bg-card text-primary shadow-sm' : 'text-ink-soft')}
+          >
+            {m === 'signin' ? 'Sign in' : 'Create account'}
+          </button>
+        ))}
+      </div>
+
+      {googleConfigured && (
+        <>
+          <div className="mt-5">
+            <GoogleButton text={signup ? 'signup_with' : 'signin_with'} />
+          </div>
+          <div className="my-5 flex items-center gap-3 text-xs text-ink-soft" aria-hidden>
+            <span className="h-px flex-1 bg-line" /> or use your email <span className="h-px flex-1 bg-line" />
+          </div>
+        </>
+      )}
+
+      <form onSubmit={submit} className={cn('flex flex-col gap-4', !googleConfigured && 'mt-5')} noValidate>
+        {error && <Banner tone="bad">{error}</Banner>}
+        <Field label="Email">
+          {(a11y) => (
+            <TextInput {...a11y} type="email" inputMode="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
+          )}
+        </Field>
+        <PasswordField
+          label="Password"
+          value={password}
+          onChange={setPassword}
+          email={email}
+          checklist={signup}
+          autoComplete={signup ? 'new-password' : 'current-password'}
+        />
+        {!signup && (
+          <div className="-mt-2 text-right">
+            <Link to="/forgot-password" className="text-sm font-medium text-primary">
+              Forgot password?
+            </Link>
+          </div>
+        )}
+        {signup && <PasswordField label="Confirm password" value={confirm} onChange={setConfirm} autoComplete="new-password" error={confirmError} />}
+        {signup && <Turnstile onToken={setToken} resetSignal={resetSignal} />}
+        <Button type="submit" size="lg" disabled={blocked}>
+          {busy ? (signup ? 'Creating account…' : 'Signing in…') : signup ? 'Create account' : 'Sign in'}
+        </Button>
+        {signup && (
+          <p className="text-center text-xs text-ink-soft">
+            We will email you a link to verify your address. After that you will set up your work hours and leave.
+          </p>
+        )}
+        <p className="text-center text-xs text-ink-soft">
+          By continuing you agree to how your data is stored. You can delete your account and data any time.
+        </p>
+      </form>
+    </AuthLayout>
   );
 }

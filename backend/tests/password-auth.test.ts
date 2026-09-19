@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { MemoryEmailSender, type OutgoingEmail } from '../src/email';
 import type { GoogleVerifier } from '../src/google';
@@ -66,7 +66,14 @@ beforeEach(() => {
   app = makeApp();
 });
 
+// The fake client IPs repeat on every run, so counters left behind by an earlier run must not leak into this one.
+const clearCounters = () => prisma.$executeRaw`DELETE FROM "RateLimit" WHERE "key" LIKE '%:ip:10.99.%'`;
+beforeAll(async () => {
+  await clearCounters();
+});
+
 afterAll(async () => {
+  await clearCounters();
   await prisma.user.deleteMany({ where: { email: { contains: RUN } } });
   await prisma.$disconnect();
 });
@@ -305,7 +312,7 @@ describe('password sign-in', () => {
     const raw = (res.headers['set-cookie'] as unknown as string[])[0]!;
     expect(raw).toContain('HttpOnly');
     expect(raw).toContain('SameSite=Lax');
-    expect(res.body.user).toMatchObject({ email, setupComplete: false });
+    expect(res.body.user).toMatchObject({ email, setupComplete: false, hasPassword: true });
   });
 
   it('refuses an unverified account, but only after the right password (so it says nothing to a guesser)', async () => {
@@ -497,5 +504,48 @@ describe('sessions', () => {
     const res = await request(app).post('/api/auth/login').set('Origin', 'https://evil.example').send({ email: freshEmail(), password: 'x' });
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('BAD_ORIGIN');
+  });
+});
+
+describe('deleting your own account', () => {
+  const del = (cookie: string, body: object) => request(app).delete('/api/account').set('Cookie', cookie).send(body);
+
+  it('needs a session, the word DELETE, and the current password', async () => {
+    const { email, cookie } = await verifiedAccount();
+    expect((await request(app).delete('/api/account').send({ confirm: 'DELETE', password: STRONG })).status).toBe(401);
+    expect((await del(cookie, { password: STRONG })).status).toBe(400); // no confirmation word
+    expect((await del(cookie, { confirm: 'delete', password: STRONG })).status).toBe(400);
+    const noPw = await del(cookie, { confirm: 'DELETE' });
+    expect(noPw.status).toBe(403);
+    expect(noPw.body.error.code).toBe('WRONG_PASSWORD');
+    expect((await del(cookie, { confirm: 'DELETE', password: 'wrong-password-x' })).status).toBe(403);
+    expect(await prisma.user.findUnique({ where: { email } })).not.toBeNull(); // still there
+  });
+
+  it('removes the account and its tokens, clears the cookie, and the address can be used again', async () => {
+    const { email, cookie } = await verifiedAccount();
+    const res = await del(cookie, { confirm: 'DELETE', password: STRONG });
+    expect(res.status).toBe(204);
+    expect((res.headers['set-cookie'] as unknown as string[])[0]).toContain('Max-Age=0');
+    expect(await prisma.user.findUnique({ where: { email } })).toBeNull();
+    expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).status).toBe(401); // the old cookie is dead
+    expect((await login(email, STRONG)).status).toBe(401);
+    expect((await register(email)).status).toBe(202);
+    expect(await prisma.user.findUnique({ where: { email } })).not.toBeNull();
+  });
+
+  it('a Google-only account deletes with just the confirmation word', async () => {
+    const email = freshEmail('goog');
+    const signIn = await post('google', { credential: `google|sub-${RUN}-del|${email}|true` });
+    expect((await del(cookieOf(signIn), { confirm: 'DELETE' })).status).toBe(204);
+    expect(await prisma.user.findUnique({ where: { email } })).toBeNull();
+  });
+
+  it('removes only the caller: another account is untouched', async () => {
+    const a = await verifiedAccount();
+    const b = await verifiedAccount();
+    await del(a.cookie, { confirm: 'DELETE', password: STRONG });
+    expect(await prisma.user.findUnique({ where: { email: b.email } })).not.toBeNull();
+    expect((await request(app).get('/api/auth/me').set('Cookie', b.cookie)).status).toBe(200);
   });
 });

@@ -57,7 +57,7 @@ describe('sign-in gate', () => {
     serve('dev');
     mount();
     expect(await screen.findByLabelText('Worked today')).toBeInTheDocument();
-    expect(screen.queryByText('Only the authorised Google account can sign in.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Sign in' })).not.toBeInTheDocument();
   });
 
   it('shows the app when a Google session exists', async () => {
@@ -70,15 +70,45 @@ describe('sign-in gate', () => {
     serve('401');
     mount();
     expect(await screen.findByRole('heading', { name: 'Office Hours' })).toBeInTheDocument();
-    expect(screen.getByText('Only the authorised Google account can sign in.')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Sign in', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Create account' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Worked today')).not.toBeInTheDocument();
     expect(api.get).not.toHaveBeenCalledWith('/dashboard');
   });
 
-  it('tells you when Google sign-in is not configured instead of showing a dead page', async () => {
+  it('still offers email sign-in when Google is not configured (no dead page)', async () => {
     serve('401');
     mount();
-    expect(await screen.findByText(/VITE_GOOGLE_CLIENT_ID is missing/)).toBeInTheDocument();
+    expect(await screen.findByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('holds a signed-in account that has not finished setup on the setup wizard, and never loads the app', async () => {
+    api.get.mockImplementation(async (url: string) => {
+      if (url === '/auth/me') return { user: { email: 'new@example.test', name: null, setupComplete: false, isAdmin: false, hasPassword: true } };
+      if (url === '/setup/defaults') return { alreadyComplete: false, today: '2026-09-19', profile: { name: '' }, work: { dailyMinutes: 480, weeklyMinutes: 2400, workingDays: [1, 2, 3, 4, 5], weekStartsOn: 1, trackingStartDate: '2026-09-21' }, leave: { annualEntitlement: 21, accrualPerMonth: 1.75, carryForwardCap: 3, optionalQuota: 2, bereavementDaysPerEvent: 5, carriedForward: 0, annualUsedSoFar: 0, optionalUsedSoFar: 0, creditsFromMonth: 1 }, holidays: { companyCount: 0 } };
+      throw new Error(`unexpected ${url}`);
+    });
+    mount();
+    expect(await screen.findByRole('heading', { name: 'Set up your account' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Worked today')).not.toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('opens the forgot-password page while signed out', async () => {
+    serve('401');
+    mount('/forgot-password');
+    expect(await screen.findByRole('heading', { name: 'Reset your password' })).toBeInTheDocument();
+  });
+
+  it('the emailed verification link works while signed out and uses its token exactly once', async () => {
+    api.post.mockResolvedValue({});
+    serve('401');
+    mount('/verify-email?token=abc123');
+    expect(await screen.findByRole('heading', { name: 'Email verified' })).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(api.post).toHaveBeenCalledWith('/auth/verify-email', { token: 'abc123' });
   });
 
   it('explains a network failure during the sign-in check and retries', async () => {

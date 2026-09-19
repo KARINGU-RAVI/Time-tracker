@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import type { PrismaClient } from '@prisma/client';
 import { requireAuth, type Authenticator } from './auth';
 import { ApiError, errorHandler } from './errors';
+import { accountRoutes } from './routes/account';
 import { attendanceRoutes } from './routes/attendance';
 import { backupRoutes } from './routes/backup';
 import { authRoutes, csrfGuard, type AuthConfig } from './routes/auth';
@@ -45,6 +46,7 @@ export function createApp(deps: AppDeps) {
   api.use(requireAuth(deps.authenticate));
   // The setup wizard is the only thing a new account can reach; everything below needs setup to be finished.
   api.use(setupRoutes(deps));
+  api.use(accountRoutes(deps));
   api.use(requireSetup);
   api.use(attendanceRoutes(deps));
   api.use(backupRoutes(deps));
