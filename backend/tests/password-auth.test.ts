@@ -549,3 +549,20 @@ describe('deleting your own account', () => {
     expect((await request(app).get('/api/auth/me').set('Cookie', b.cookie)).status).toBe(200);
   });
 });
+
+describe('email failures are visible to the operator', () => {
+  it('logs the provider reason (without the address or the mail) when a message cannot be sent', async () => {
+    const seen: string[] = [];
+    const orig = console.error;
+    console.error = (...a: unknown[]) => void seen.push(a.join(' '));
+    try {
+      failEmail = true;
+      const email = freshEmail('logged');
+      expect((await register(email)).status).toBe(502);
+      expect(seen.join('\n')).toContain('[email] send failed: provider down');
+      expect(seen.join('\n')).not.toContain(email);
+    } finally {
+      console.error = orig;
+    }
+  });
+});

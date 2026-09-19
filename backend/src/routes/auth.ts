@@ -91,7 +91,10 @@ export function authRoutes(prisma: PrismaClient, cfg: AuthConfig, authenticate: 
     try {
       await cfg.email.send(mail);
       return true;
-    } catch {
+    } catch (e) {
+      // The caller gets a neutral answer, but the operator must be able to see why mail is not going out.
+      // Never log the recipient, the message, or any key.
+      console.error('[email] send failed:', e instanceof Error ? e.message : 'unknown error');
       return false;
     }
   };

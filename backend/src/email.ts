@@ -50,7 +50,16 @@ export class BrevoEmailSender implements EmailSender {
       }),
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) throw new Error(`Email provider refused the message (${res.status}).`);
+    if (!res.ok) {
+      // Brevo explains refusals in a short JSON message (for example an unverified sender). Keep it for the server logs.
+      let reason = '';
+      try {
+        reason = String(((await res.json()) as { message?: unknown }).message ?? '').slice(0, 200);
+      } catch {
+        /* no readable body */
+      }
+      throw new Error(`Email provider refused the message (${res.status})${reason ? `: ${reason}` : ''}`);
+    }
   }
 }
 
