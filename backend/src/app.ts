@@ -10,6 +10,7 @@ import { dashboardRoutes } from './routes/dashboard';
 import { holidayRoutes } from './routes/holidays';
 import { leaveRoutes } from './routes/leave';
 import { ruleRoutes } from './routes/rules';
+import { requireSetup, setupRoutes } from './routes/setup';
 
 export interface AppDeps {
   prisma: PrismaClient;
@@ -42,6 +43,9 @@ export function createApp(deps: AppDeps) {
 
   const api = Router();
   api.use(requireAuth(deps.authenticate));
+  // The setup wizard is the only thing a new account can reach; everything below needs setup to be finished.
+  api.use(setupRoutes(deps));
+  api.use(requireSetup);
   api.use(attendanceRoutes(deps));
   api.use(backupRoutes(deps));
   api.use(dashboardRoutes(deps));

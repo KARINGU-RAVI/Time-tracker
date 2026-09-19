@@ -86,6 +86,9 @@ model UserSettings {
   maxSessionMinutes Int      @default(960)
   theme             String   @default("system")
   notificationPrefs Json     @default("{}")
+  employeeId        String?
+  designation       String?
+  businessUnit      String?
   updatedAt         DateTime @updatedAt @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

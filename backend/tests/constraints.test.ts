@@ -290,4 +290,45 @@ describe('Holiday and ledger', () => {
   });
 });
 
+describe('account and abuse-protection tables', () => {
+  it('refuses an email that is not lower case (so one address can never be two accounts)', async () => {
+    const email = `Upper-${Date.now()}-${process.pid}@example.test`;
+    await expect(prisma.user.create({ data: { email } })).rejects.toThrow(/User_email_lowercase/);
+    const ok = await prisma.user.create({ data: { email: email.toLowerCase() } });
+    createdUsers.push(ok.id);
+    await expect(prisma.user.create({ data: { email: email.toLowerCase() } })).rejects.toThrow(/Unique constraint/);
+  });
+
+  it('refuses a negative failed-login counter', async () => {
+    await expect(prisma.user.update({ where: { id: userId }, data: { failedLogins: -1 } })).rejects.toThrow(/failedLogins_nonneg/);
+  });
+
+  it('stores only one row per token hash, and refuses a token used before it was created', async () => {
+    const hash = `h-${Date.now()}-${process.pid}`;
+    await prisma.authToken.create({ data: { userId, kind: 'VERIFY_EMAIL', tokenHash: hash, expiresAt: new Date(Date.now() + 1000) } });
+    await expect(
+      prisma.authToken.create({ data: { userId, kind: 'RESET_PASSWORD', tokenHash: hash, expiresAt: new Date(Date.now() + 1000) } }),
+    ).rejects.toThrow(/Unique constraint/);
+    await expect(
+      prisma.authToken.create({
+        data: { userId, kind: 'VERIFY_EMAIL', tokenHash: `${hash}-b`, expiresAt: new Date(Date.now() + 1000), usedAt: new Date(0) },
+      }),
+    ).rejects.toThrow(/usedAt_after_created/);
+  });
+
+  it('removes tokens together with their user', async () => {
+    const uid = await freshUser('tok');
+    const tokenHash = `gone-${Date.now()}-${process.pid}`;
+    await prisma.authToken.create({ data: { userId: uid, kind: 'VERIFY_EMAIL', tokenHash, expiresAt: new Date(Date.now() + 1000) } });
+    await prisma.user.delete({ where: { id: uid } });
+    expect(await prisma.authToken.findUnique({ where: { tokenHash } })).toBeNull();
+  });
+
+  it('refuses a negative rate-limit counter', async () => {
+    await expect(
+      prisma.rateLimit.create({ data: { key: `neg-${Date.now()}-${process.pid}`, windowStart: new Date(), count: -1 } }),
+    ).rejects.toThrow(/RateLimit_count_nonneg/);
+  });
+});
+
 void seq;
