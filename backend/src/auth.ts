@@ -5,6 +5,9 @@ import { ApiError } from './errors';
 export interface AuthUser {
   id: string;
   email: string;
+  /** False until the setup wizard is finished. */
+  setupComplete: boolean;
+  isAdmin: boolean;
 }
 
 /**
@@ -24,10 +27,14 @@ declare module 'express-serve-static-core' {
  * DEVELOPMENT AND TESTS ONLY: treats every request as the given owner.
  * createApp refuses to use this when NODE_ENV is 'production'.
  */
+export function toAuthUser(user: { id: string; email: string; setupCompletedAt: Date | null; isAdmin: boolean }): AuthUser {
+  return { id: user.id, email: user.email, setupComplete: user.setupCompletedAt !== null, isAdmin: user.isAdmin };
+}
+
 export function devAuthenticator(prisma: PrismaClient, email: string): Authenticator {
   return async () => {
     const user = await prisma.user.findUnique({ where: { email } });
-    return user ? { id: user.id, email: user.email } : null;
+    return user ? toAuthUser(user) : null;
   };
 }
 

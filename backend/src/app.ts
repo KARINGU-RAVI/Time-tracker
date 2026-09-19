@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import type { PrismaClient } from '@prisma/client';
 import { requireAuth, type Authenticator } from './auth';
 import { ApiError, errorHandler } from './errors';
+import { accountRoutes } from './routes/account';
 import { attendanceRoutes } from './routes/attendance';
 import { backupRoutes } from './routes/backup';
 import { authRoutes, csrfGuard, type AuthConfig } from './routes/auth';
@@ -10,6 +11,7 @@ import { dashboardRoutes } from './routes/dashboard';
 import { holidayRoutes } from './routes/holidays';
 import { leaveRoutes } from './routes/leave';
 import { ruleRoutes } from './routes/rules';
+import { requireSetup, setupRoutes } from './routes/setup';
 
 export interface AppDeps {
   prisma: PrismaClient;
@@ -37,11 +39,15 @@ export function createApp(deps: AppDeps) {
   if (deps.auth) {
     // Public sign-in routes, then the CSRF guard for everything that writes.
     app.use('/api', csrfGuard(deps.auth.appOrigin));
-    app.use('/api', authRoutes(deps.prisma, deps.auth, deps.authenticate));
+    app.use('/api', authRoutes(deps.prisma, deps.auth, deps.authenticate, deps.clock));
   }
 
   const api = Router();
   api.use(requireAuth(deps.authenticate));
+  // The setup wizard is the only thing a new account can reach; everything below needs setup to be finished.
+  api.use(setupRoutes(deps));
+  api.use(accountRoutes(deps));
+  api.use(requireSetup);
   api.use(attendanceRoutes(deps));
   api.use(backupRoutes(deps));
   api.use(dashboardRoutes(deps));

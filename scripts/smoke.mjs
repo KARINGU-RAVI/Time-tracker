@@ -84,6 +84,7 @@ export async function runSmoke(baseInput, options = {}) {
     must(csp.includes("default-src 'self'"), 'Content-Security-Policy is missing or has no default-src');
     must(csp.includes("frame-ancestors 'none'"), 'CSP does not forbid framing');
     must(csp.includes('accounts.google.com'), 'CSP does not allow Google sign-in');
+    must(csp.includes('challenges.cloudflare.com'), 'CSP does not allow the human check');
     must(!/unsafe-eval/.test(csp), 'CSP allows unsafe-eval');
     must(!/script-src[^;]*'unsafe-inline'/.test(csp), 'CSP allows inline scripts');
     must(h('x-content-type-options') === 'nosniff', 'X-Content-Type-Options is not nosniff');

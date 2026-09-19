@@ -13,7 +13,9 @@ import { parse as parseYaml } from 'yaml';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { devAuthenticator } from '../src/auth';
+import { MemoryEmailSender } from '../src/email';
 import type { GoogleVerifier } from '../src/google';
+import { allowAllTurnstile } from '../src/turnstile';
 import { createHandler, normalisePath } from '../src/lambda';
 import { seedOwner } from '../prisma/seed-lib';
 import { runSmoke } from '../../scripts/smoke.mjs';
@@ -64,7 +66,8 @@ describe('netlify.toml', () => {
     const csp = all['Content-Security-Policy']!;
     const directive = (name: string) => csp.split(';').map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) ?? '';
     expect(directive('default-src')).toBe("default-src 'self'");
-    expect(directive('script-src')).toBe("script-src 'self' https://accounts.google.com/gsi/client");
+    expect(directive('script-src')).toBe("script-src 'self' https://accounts.google.com/gsi/client https://challenges.cloudflare.com");
+    expect(directive('frame-src')).toContain('https://challenges.cloudflare.com'); // the human check widget
     expect(csp).not.toMatch(/unsafe-eval/);
     expect(directive('script-src')).not.toMatch(/unsafe-inline/);
     expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");
@@ -96,10 +99,11 @@ describe('deployment environment template', () => {
   const assigned = new Set(template.split('\n').filter((l) => /^[A-Z_]+=/.test(l)).map((l) => l.split('=')[0]));
 
   it('lists every variable the deployed function requires, plus the build-time client id', () => {
-    for (const key of ['DATABASE_URL', 'ALLOWED_EMAIL', 'GOOGLE_CLIENT_ID', 'SESSION_SECRET', 'APP_ORIGIN', 'AUTH_MODE', 'VITE_GOOGLE_CLIENT_ID']) {
+    for (const key of ['DATABASE_URL', 'GOOGLE_CLIENT_ID', 'SESSION_SECRET', 'APP_ORIGIN', 'AUTH_MODE', 'BREVO_API_KEY', 'EMAIL_FROM', 'TURNSTILE_SECRET_KEY', 'VITE_GOOGLE_CLIENT_ID', 'VITE_TURNSTILE_SITE_KEY']) {
       expect(assigned.has(key), key).toBe(true);
     }
     expect(template).toContain('AUTH_MODE="google"');
+    expect(assigned.has('ALLOWED_EMAIL')).toBe(false); // sign-up is open now; access is controlled by the account cap
   });
 
   it('never asks for DIRECT_URL in Netlify (migrations run from your own computer) and holds no real secrets', () => {
@@ -189,7 +193,9 @@ describe('the function bundle (built the way Netlify builds it)', () => {
   });
 
   const REQUIRED = {
-    ALLOWED_EMAIL: 'bundle@example.test',
+    BREVO_API_KEY: 'xkeysib-test',
+    EMAIL_FROM: 'sender@example.test',
+    TURNSTILE_SECRET_KEY: 'turnstile-secret',
     GOOGLE_CLIENT_ID: 'client.apps.googleusercontent.com',
     SESSION_SECRET: 'a-test-secret-that-is-at-least-32-characters-long',
     APP_ORIGIN: 'https://hours.example.test',
@@ -316,8 +322,8 @@ describe('a simulated Netlify site, checked by the real smoke script', () => {
     if (!existsSync(path.join(DIST, 'index.html'))) execSync('npm run build -w @oht/frontend', { cwd: ROOT, stdio: 'ignore' });
     await seedOwner(prisma, { email, trackingStart: '2026-09-01' });
     good = createHandler(
-      { DATABASE_URL: 'x', ALLOWED_EMAIL: email, GOOGLE_CLIENT_ID: 'c', SESSION_SECRET: 'a-test-secret-that-is-at-least-32-characters-long', APP_ORIGIN: ORIGIN, AUTH_MODE: 'google' },
-      { prisma, verifyGoogle, clock: () => Date.now() },
+      { DATABASE_URL: 'x', BREVO_API_KEY: 'k', EMAIL_FROM: 'a@example.test', TURNSTILE_SECRET_KEY: 't', GOOGLE_CLIENT_ID: 'c', SESSION_SECRET: 'a-test-secret-that-is-at-least-32-characters-long', APP_ORIGIN: ORIGIN, AUTH_MODE: 'google' },
+      { prisma, verifyGoogle, email: new MemoryEmailSender(), verifyTurnstile: allowAllTurnstile, clock: () => Date.now() },
     );
   }, 200_000);
 

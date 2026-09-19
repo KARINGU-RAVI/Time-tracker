@@ -1,6 +1,6 @@
 import { Component, useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 import { ErrorState, Skeleton } from '@/components/ui/primitives';
 import { ApiError, setUnauthorizedListener } from '@/lib/api';
@@ -8,10 +8,16 @@ import { useSession } from '@/lib/queries';
 import Calendar from '@/pages/Calendar';
 import DayDetail from '@/pages/DayDetail';
 import Holidays from '@/pages/Holidays';
+import Landing from '@/pages/Landing';
 import Leave from '@/pages/Leave';
+import ForgotPassword from '@/pages/auth/ForgotPassword';
+import ResetPassword from '@/pages/auth/ResetPassword';
+import VerifyEmail from '@/pages/auth/VerifyEmail';
 import Login from '@/pages/Login';
+import Privacy from '@/pages/Privacy';
 import More from '@/pages/More';
 import Settings from '@/pages/Settings';
+import Setup from '@/pages/Setup';
 import Summary from '@/pages/Summary';
 import Today from '@/pages/Today';
 
@@ -46,15 +52,29 @@ function NotFound() {
   return <ErrorState message="That page does not exist." />;
 }
 
+/** Pages reached from an emailed link, plus the privacy policy. They work signed in or out, so they sit outside the sign-in check. */
+function EmailLinkRoutes() {
+  return (
+    <Routes>
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/privacy" element={<Privacy />} />
+    </Routes>
+  );
+}
+
 function Gate() {
   const session = useSession();
   const qc = useQueryClient();
+  const { pathname } = useLocation();
 
   // Any 401 from the API means the session ended: re-check who is signed in.
   useEffect(() => {
     setUnauthorizedListener(() => void qc.invalidateQueries({ queryKey: ['session'] }));
     return () => setUnauthorizedListener(null);
   }, [qc]);
+
+  if (pathname === '/verify-email' || pathname === '/reset-password' || pathname === '/privacy') return <EmailLinkRoutes />;
 
   if (session.isLoading) {
     return (
@@ -63,10 +83,22 @@ function Gate() {
       </div>
     );
   }
-  if (session.error instanceof ApiError && session.error.status === 401) return <Login />;
+  if (session.error instanceof ApiError && session.error.status === 401) {
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/signin" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="*" element={<Login />} />
+      </Routes>
+    );
+  }
   if (session.isError) {
     return <ErrorState message={session.error.message} onRetry={() => session.refetch()} />;
   }
+
+  // A new account cannot reach the app until the setup wizard is finished (the server enforces this too).
+  if (session.data?.mode === 'google' && !session.data.setupComplete) return <Setup />;
 
   return (
     <Routes>
@@ -79,6 +111,7 @@ function Gate() {
         <Route path="more" element={<More />} />
         <Route path="holidays" element={<Holidays />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="signin" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

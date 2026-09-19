@@ -55,6 +55,18 @@ model User {
   timezone   String   @default("Asia/Kolkata")
   createdAt  DateTime @default(now()) @db.Timestamptz(6)
 
+  /// scrypt hash ("scrypt$N$r$p$salt$hash"); null for Google-only accounts.
+  passwordHash     String?
+  emailVerifiedAt  DateTime? @db.Timestamptz(6)
+  /// Null until the setup wizard is finished; the API refuses everything else until then.
+  setupCompletedAt DateTime? @db.Timestamptz(6)
+  failedLogins     Int       @default(0)
+  lockedUntil      DateTime? @db.Timestamptz(6)
+  /// Bumped on password reset / "sign out everywhere"; older session cookies stop working.
+  sessionVersion   Int       @default(0)
+  isAdmin          Boolean   @default(false)
+
+  authTokens        AuthToken[]
   settings          UserSettings?
   attendances       Attendance[]
   sessions          AttendanceSession[]
@@ -74,6 +86,9 @@ model UserSettings {
   maxSessionMinutes Int      @default(960)
   theme             String   @default("system")
   notificationPrefs Json     @default("{}")
+  employeeId        String?
+  designation       String?
+  businessUnit      String?
   updatedAt         DateTime @updatedAt @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -222,4 +237,33 @@ model AuditLog {
 
   @@index([userId, at])
   @@index([entity, entityId])
+}
+
+enum AuthTokenKind {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+/// Single-use links sent by email. Only a SHA-256 of the token is stored.
+model AuthToken {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid
+  kind      AuthTokenKind
+  tokenHash String        @unique
+  expiresAt DateTime      @db.Timestamptz(6)
+  usedAt    DateTime?     @db.Timestamptz(6)
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+}
+
+/// Fixed-window counters for abuse limits (a serverless function has no shared memory).
+model RateLimit {
+  key         String
+  windowStart DateTime @db.Timestamptz(6)
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
 }

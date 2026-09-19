@@ -7,3 +7,4 @@ export * from './day';
 export * from './period';
 export * from './live';
 export * from './leave';
+export * from './password-policy';

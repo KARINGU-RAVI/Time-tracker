@@ -6,7 +6,7 @@ import { SignJWT, jwtVerify } from 'jose';
  *  - HttpOnly: page scripts (and therefore XSS) can never read it.
  *  - SameSite=Lax + an Origin check on writes (see csrfGuard) protects against CSRF.
  *  - Secure in production so it only travels over HTTPS.
- * Changing SESSION_SECRET signs everyone out (there is only the owner).
+ * Changing SESSION_SECRET signs everyone out; bumping one user's sessionVersion signs out only that user.
  */
 
 export const COOKIE_NAME = 'oht_session';
@@ -15,6 +15,8 @@ export const DEFAULT_SESSION_SECONDS = 30 * 24 * 60 * 60;
 export interface SessionClaims {
   userId: string;
   email: string;
+  /** Matches User.sessionVersion; a password reset bumps it and so signs out every other device. */
+  version: number;
 }
 
 const key = (secret: string) => new TextEncoder().encode(secret);
@@ -25,7 +27,7 @@ export async function signSession(
   ttlSeconds = DEFAULT_SESSION_SECONDS,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  return new SignJWT({ email: claims.email })
+  return new SignJWT({ email: claims.email, v: claims.version })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(claims.userId)
     .setIssuedAt(now)
@@ -39,7 +41,9 @@ export async function verifySession(token: string | undefined, secret: string): 
   try {
     const { payload } = await jwtVerify(token, key(secret), { algorithms: ['HS256'] });
     if (typeof payload.sub !== 'string' || typeof payload.email !== 'string') return null;
-    return { userId: payload.sub, email: payload.email };
+    // Sessions issued before versions existed have no "v" and count as version 0.
+    const version = typeof payload.v === 'number' ? payload.v : 0;
+    return { userId: payload.sub, email: payload.email, version };
   } catch {
     return null;
   }

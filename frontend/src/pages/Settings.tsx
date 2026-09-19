@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DataCard } from '@/components/DataCard';
+import { DeleteAccountCard } from '@/components/DeleteAccountCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle, ErrorState, Skeleton } from '@/components/ui/primitives';
 import { cn } from '@/lib/cn';
@@ -59,7 +60,7 @@ export default function Settings() {
         <CardTitle>Account</CardTitle>
         {session.data?.mode === 'google' ? (
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-ink-soft">Signed in with Google</p>
+            <p className="text-sm text-ink-soft">{session.data.name ? `${session.data.name} · ` : ''}{session.data.email}</p>
             <Button variant="outline" size="sm" onClick={signOut}>Sign out</Button>
           </div>
         ) : (
@@ -102,6 +103,8 @@ export default function Settings() {
       </Card>
 
       <DataCard />
+
+      {session.data?.mode === 'google' && <DeleteAccountCard hasPassword={session.data.hasPassword} />}
     </div>
   );
 }

@@ -3,8 +3,10 @@ import { PrismaClient } from '@prisma/client';
 import serverless from 'serverless-http';
 import { createApp } from './app';
 import { loadProductionConfig } from './config';
+import { BrevoEmailSender, type EmailSender } from './email';
 import { createGoogleVerifier, type GoogleVerifier } from './google';
 import { sessionAuthenticator } from './routes/auth';
+import { createTurnstileVerifier, type TurnstileVerifier } from './turnstile';
 
 /**
  * Where Netlify puts the function. Depending on how a request reaches it (the /api/* rewrite or a direct
@@ -20,6 +22,8 @@ export function normalisePath(path: string): string {
 export interface LambdaOverrides {
   prisma?: PrismaClient;
   verifyGoogle?: GoogleVerifier;
+  email?: EmailSender;
+  verifyTurnstile?: TurnstileVerifier;
   clock?: () => number;
 }
 
@@ -37,12 +41,14 @@ export function createHandler(env: NodeJS.ProcessEnv = process.env, overrides: L
     clock: overrides.clock ?? (() => Date.now()),
     authenticate: sessionAuthenticator(prisma, config.sessionSecret),
     auth: {
-      allowedEmail: config.allowedEmail,
       verifyGoogle: overrides.verifyGoogle ?? createGoogleVerifier(config.googleClientId),
       sessionSecret: config.sessionSecret,
       // Always Secure: this only ever runs behind HTTPS, and it must not depend on NODE_ENV being set.
       secureCookies: true,
       appOrigin: config.appOrigin,
+      email: overrides.email ?? new BrevoEmailSender(config.brevoApiKey, { email: config.emailFrom, name: 'Office Hours' }),
+      verifyTurnstile: overrides.verifyTurnstile ?? createTurnstileVerifier(config.turnstileSecret),
+      maxAccounts: config.maxAccounts,
     },
   });
 

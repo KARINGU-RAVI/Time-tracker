@@ -56,7 +56,8 @@ http.interceptors.response.use(
   (r) => r,
   (e) => {
     const err = toApiError(e);
-    if (err.status === 401 && onUnauthorized) onUnauthorized();
+    // 401: the session ended. SETUP_REQUIRED: the account still has to finish setup. Either way, re-check who is signed in.
+    if ((err.status === 401 || err.code === 'SETUP_REQUIRED') && onUnauthorized) onUnauthorized();
     return Promise.reject(err);
   },
 );

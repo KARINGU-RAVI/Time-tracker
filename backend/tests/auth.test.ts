@@ -4,6 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { istInstant } from '@oht/engine';
 import { createApp } from '../src/app';
 import { loadConfig } from '../src/config';
+import { MemoryEmailSender } from '../src/email';
+import { allowAllTurnstile } from '../src/turnstile';
 import type { GoogleVerifier } from '../src/google';
 import { sessionAuthenticator } from '../src/routes/auth';
 import { signSession, verifySession } from '../src/session';
@@ -30,7 +32,15 @@ function makeApp(secure = false) {
     prisma,
     clock: () => istInstant('2026-09-21', '10:00'),
     authenticate: sessionAuthenticator(prisma, SECRET),
-    auth: { allowedEmail: email, verifyGoogle, sessionSecret: SECRET, secureCookies: secure, appOrigin: ORIGIN },
+    auth: {
+      verifyGoogle,
+      sessionSecret: SECRET,
+      secureCookies: secure,
+      appOrigin: ORIGIN,
+      email: new MemoryEmailSender(),
+      verifyTurnstile: allowAllTurnstile,
+      maxAccounts: 100000,
+    },
   });
 }
 
@@ -39,6 +49,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // These tests use a fixed clock and one local address, so their sign-in counters would otherwise pile up across runs.
+  await prisma.$executeRaw`DELETE FROM "RateLimit" WHERE "key" LIKE 'google:ip:%' AND "key" NOT LIKE '%10.99.%'`;
   await prisma.user.deleteMany({ where: { email } });
   await prisma.$disconnect();
 });
@@ -74,19 +86,16 @@ describe('Google sign-in', () => {
     expect((res.headers['set-cookie'] as unknown as string[])[0]).toContain('Secure');
   });
 
-  it('refuses any other Google account, and gives no cookie', async () => {
-    // Start from an unbound account, so ONLY the email allowlist can stop the stranger
-    // (not the Google-identity binding, which is tested separately below).
-    await prisma.user.update({ where: { id: userId }, data: { googleSub: null } });
-
+  it('creates a new account for an unknown verified Google user, which must finish setup', async () => {
+    const stranger = 'stranger@example.test';
+    await prisma.user.deleteMany({ where: { email: stranger } });
     const res = await request(makeApp()).post('/api/auth/google').send({ credential: 'good-stranger-token' });
-    expect(res.status).toBe(403);
-    expect(res.body.error.code).toBe('ACCOUNT_NOT_ALLOWED');
-    expect(res.body.error.message).toBe('This Google account is not allowed.');
-    expect(res.headers['set-cookie']).toBeUndefined();
-
-    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    expect(user.googleSub).toBeNull(); // the stranger was not bound to the owner's account
+    expect(res.status).toBe(200);
+    expect(res.body.user).toMatchObject({ email: stranger, setupComplete: false, isAdmin: false });
+    const created = await prisma.user.findUniqueOrThrow({ where: { email: stranger } });
+    expect(created.emailVerifiedAt).not.toBeNull();
+    expect(created.id).not.toBe(userId); // never the owner's account
+    await prisma.user.delete({ where: { id: created.id } });
   });
 
   it('refuses an unverified email', async () => {
@@ -117,20 +126,20 @@ describe('Google sign-in', () => {
 
 describe('session cookie security', () => {
   it('rejects a tampered cookie', async () => {
-    const good = await signSession({ userId, email }, SECRET);
+    const good = await signSession({ userId, email, version: 0 }, SECRET);
     const tampered = good.slice(0, -3) + (good.endsWith('AAA') ? 'BBB' : 'AAA');
     const res = await request(makeApp()).get('/api/dashboard').set('Cookie', `oht_session=${tampered}`);
     expect(res.status).toBe(401);
   });
 
   it('rejects a token signed with a different secret', async () => {
-    const forged = await signSession({ userId, email }, 'a-completely-different-secret-value-32chars');
+    const forged = await signSession({ userId, email, version: 0 }, 'a-completely-different-secret-value-32chars');
     const res = await request(makeApp()).get('/api/dashboard').set('Cookie', `oht_session=${forged}`);
     expect(res.status).toBe(401);
   });
 
   it('rejects an expired session', async () => {
-    const expired = await signSession({ userId, email }, SECRET, -60);
+    const expired = await signSession({ userId, email, version: 0 }, SECRET, -60);
     expect(await verifySession(expired, SECRET)).toBeNull();
     const res = await request(makeApp()).get('/api/dashboard').set('Cookie', `oht_session=${expired}`);
     expect(res.status).toBe(401);
@@ -144,7 +153,7 @@ describe('session cookie security', () => {
   });
 
   it('rejects a valid session for a user that no longer exists', async () => {
-    const ghost = await signSession({ userId: '00000000-0000-4000-8000-000000000000', email }, SECRET);
+    const ghost = await signSession({ userId: '00000000-0000-4000-8000-000000000000', email, version: 0 }, SECRET);
     const res = await request(makeApp()).get('/api/dashboard').set('Cookie', `oht_session=${ghost}`);
     expect(res.status).toBe(401);
   });
@@ -152,7 +161,7 @@ describe('session cookie security', () => {
 
 describe('CSRF protection', () => {
   it('blocks writes that come from another site, even with a valid cookie', async () => {
-    const cookie = `oht_session=${await signSession({ userId, email }, SECRET)}`;
+    const cookie = `oht_session=${await signSession({ userId, email, version: 0 }, SECRET)}`;
     const app = makeApp();
     const evil = await request(app).post('/api/attendance/check-in').set('Cookie', cookie).set('Origin', 'https://evil.example');
     expect(evil.status).toBe(403);
@@ -163,7 +172,7 @@ describe('CSRF protection', () => {
   });
 
   it('does not block reads', async () => {
-    const cookie = `oht_session=${await signSession({ userId, email }, SECRET)}`;
+    const cookie = `oht_session=${await signSession({ userId, email, version: 0 }, SECRET)}`;
     const res = await request(makeApp()).get('/api/dashboard').set('Cookie', cookie).set('Origin', 'https://evil.example');
     expect(res.status).toBe(200);
   });

@@ -57,7 +57,7 @@ describe('sign-in gate', () => {
     serve('dev');
     mount();
     expect(await screen.findByLabelText('Worked today')).toBeInTheDocument();
-    expect(screen.queryByText('Only the authorised Google account can sign in.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Sign in' })).not.toBeInTheDocument();
   });
 
   it('shows the app when a Google session exists', async () => {
@@ -66,19 +66,94 @@ describe('sign-in gate', () => {
     expect(await screen.findByLabelText('Worked today')).toBeInTheDocument();
   });
 
-  it('shows the login page when there is no session, and never the app', async () => {
+  it('shows a public front page that explains the app to visitors who are not signed in, and never the app', async () => {
     serve('401');
     mount();
-    expect(await screen.findByRole('heading', { name: 'Office Hours' })).toBeInTheDocument();
-    expect(screen.getByText('Only the authorised Google account can sign in.')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Track your working hours, leave and balance.' })).toBeInTheDocument();
+    expect(screen.getByText(/personal attendance and leave tracker/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Create a free account' })).toHaveAttribute('href', '/signin?mode=signup');
+    expect(screen.getAllByRole('link', { name: /Sign in/ })[0]).toHaveAttribute('href', '/signin');
+    expect(screen.getAllByRole('link', { name: /rivacy policy/ }).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText('Worked today')).not.toBeInTheDocument();
     expect(api.get).not.toHaveBeenCalledWith('/dashboard');
   });
 
-  it('tells you when Google sign-in is not configured instead of showing a dead page', async () => {
+  it('shows the login page at /signin, and for any other address when signed out', async () => {
     serve('401');
+    const first = mount('/signin');
+    expect(await screen.findByRole('heading', { name: 'Office Hours' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Sign in', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Create account' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Worked today')).not.toBeInTheDocument();
+    first.unmount();
+    mount('/calendar');
+    expect(await screen.findByRole('tab', { name: 'Sign in', selected: true })).toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('opens on the Create account tab from the front-page button', async () => {
+    serve('401');
+    mount('/signin?mode=signup');
+    expect(await screen.findByRole('tab', { name: 'Create account', selected: true })).toBeInTheDocument();
+  });
+
+  it('a signed-in person who lands on /signin is sent to the app', async () => {
+    serve('google');
+    mount('/signin');
+    expect(await screen.findByLabelText('Worked today')).toBeInTheDocument();
+  });
+
+  it('still offers email sign-in when Google is not configured (no dead page)', async () => {
+    serve('401');
+    mount('/signin');
+    expect(await screen.findByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('holds a signed-in account that has not finished setup on the setup wizard, and never loads the app', async () => {
+    api.get.mockImplementation(async (url: string) => {
+      if (url === '/auth/me') return { user: { email: 'new@example.test', name: null, setupComplete: false, isAdmin: false, hasPassword: true } };
+      if (url === '/setup/defaults') return { alreadyComplete: false, today: '2026-09-19', profile: { name: '' }, work: { dailyMinutes: 480, weeklyMinutes: 2400, workingDays: [1, 2, 3, 4, 5], weekStartsOn: 1, trackingStartDate: '2026-09-21' }, leave: { annualEntitlement: 21, accrualPerMonth: 1.75, carryForwardCap: 3, optionalQuota: 2, bereavementDaysPerEvent: 5, carriedForward: 0, annualUsedSoFar: 0, optionalUsedSoFar: 0, creditsFromMonth: 1 }, holidays: { companyCount: 0 } };
+      throw new Error(`unexpected ${url}`);
+    });
     mount();
-    expect(await screen.findByText(/VITE_GOOGLE_CLIENT_ID is missing/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Set up your account' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Worked today')).not.toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('shows the privacy policy to anyone, signed in or not', async () => {
+    serve('401');
+    const first = mount('/privacy');
+    expect(await screen.findByRole('heading', { name: 'Privacy policy' })).toBeInTheDocument();
+    expect(screen.getByText(/Delete my account/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'karinguravi307@gmail.com' })).toHaveAttribute('href', 'mailto:karinguravi307@gmail.com');
+    first.unmount();
+    serve('google');
+    mount('/privacy');
+    expect(await screen.findByRole('heading', { name: 'Privacy policy' })).toBeInTheDocument();
+  });
+
+  it('links to the privacy policy from the sign-in page', async () => {
+    serve('401');
+    mount('/signin');
+    expect(await screen.findByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+  });
+
+  it('opens the forgot-password page while signed out', async () => {
+    serve('401');
+    mount('/forgot-password');
+    expect(await screen.findByRole('heading', { name: 'Reset your password' })).toBeInTheDocument();
+  });
+
+  it('the emailed verification link works while signed out and uses its token exactly once', async () => {
+    api.post.mockResolvedValue({});
+    serve('401');
+    mount('/verify-email?token=abc123');
+    expect(await screen.findByRole('heading', { name: 'Email verified' })).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(api.post).toHaveBeenCalledWith('/auth/verify-email', { token: 'abc123' });
   });
 
   it('explains a network failure during the sign-in check and retries', async () => {

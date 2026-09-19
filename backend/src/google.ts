@@ -5,6 +5,7 @@ export interface GoogleIdentity {
   sub: string;
   email: string;
   emailVerified: boolean;
+  name?: string;
 }
 
 /** Verifies a Google ID token and returns the identity it proves. Throws when invalid. */
@@ -20,6 +21,6 @@ export function createGoogleVerifier(clientId: string): GoogleVerifier {
     const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
     const p = ticket.getPayload();
     if (!p?.sub || !p.email) throw new Error('Google token has no identity.');
-    return { sub: p.sub, email: p.email, emailVerified: p.email_verified === true };
+    return { sub: p.sub, email: p.email, emailVerified: p.email_verified === true, name: p.name };
   };
 }
