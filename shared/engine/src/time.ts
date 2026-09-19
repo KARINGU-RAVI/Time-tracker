@@ -27,6 +27,11 @@ export function istClock(ms: number): string {
   return new Date(ms + IST_OFFSET_MIN * MINUTE_MS).toISOString().slice(11, 16);
 }
 
+/** 24-hour IST clock time with seconds, 'HH:MM:SS'. */
+export function istClockSeconds(ms: number): string {
+  return new Date(ms + IST_OFFSET_MIN * MINUTE_MS).toISOString().slice(11, 19);
+}
+
 /** 12-hour IST clock time such as '4:52 PM'. */
 export function istClock12(ms: number): string {
   const [hh, mm] = istClock(ms).split(':').map(Number) as [number, number];

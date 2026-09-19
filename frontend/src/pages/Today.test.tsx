@@ -36,7 +36,8 @@ const baseDay = (over: Partial<Day> = {}): Day => ({
 
 function dashboard(over: Partial<Dashboard['today']> = {}, alerts: Dashboard['alerts'] = { incompleteDates: [], unrecordedDates: [] }): Dashboard {
   return {
-    now: new Date().toISOString(),
+    // 15:42 IST. The open session began at 12:15 IST, so 3h 27m are running on top of the 3h 28m already closed = 6h 55m.
+    now: '2026-09-18T10:12:00.000Z',
     trackingStartDate: '2026-09-01',
     today: {
       ...baseDay(),
@@ -78,7 +79,9 @@ describe('Today', () => {
   it('shows worked time, remaining time, expected OUT and the message', async () => {
     api.get.mockResolvedValue(dashboard());
     renderToday();
-    expect(await screen.findByLabelText('Worked today')).toHaveTextContent('6h 55m');
+    expect(await screen.findByLabelText('Worked today')).toHaveTextContent(/^6:55:0\d$/);
+    expect(screen.getByLabelText('This session')).toHaveTextContent(/^3:27:0\d$/);
+    expect(screen.getByLabelText('Time remaining')).toHaveTextContent(/^1:04:5\d$|^1:05:00$/);
     expect(screen.getByText('8h 00m')).toBeInTheDocument();
     expect(screen.getByText('4:47 PM')).toBeInTheDocument();
     expect(screen.getByText('You need 1h 05m more.')).toBeInTheDocument();
@@ -86,6 +89,53 @@ describe('Today', () => {
     expect(screen.getByRole('button', { name: /check out/i })).toBeInTheDocument();
     expect(screen.getByText('Outside 45m')).toBeInTheDocument();
     expect(screen.getByText(/Annual leave 12.75/)).toBeInTheDocument();
+  });
+
+  it('the seconds tick while you are checked in', async () => {
+    api.get.mockResolvedValue(dashboard());
+    renderToday();
+    const timer = await screen.findByLabelText('Worked today');
+    const first = timer.textContent;
+    expect(first).toMatch(/^6:55:\d\d$/);
+    // A second or two later the display has moved on, and it moves forward, never back.
+    await waitFor(() => expect(timer.textContent).not.toBe(first), { timeout: 4000 });
+    const secondsOf = (t: string | null) => Number(t!.split(':')[2]);
+    expect(secondsOf(timer.textContent)).toBeGreaterThan(secondsOf(first));
+  });
+
+  it('shows the same time on a device whose own clock is years wrong (the server sets the time, not the device)', async () => {
+    const realNow = Date.now.bind(Date);
+    const spy = vi.spyOn(Date, 'now').mockImplementation(() => realNow() + 5 * 365 * 24 * 3600 * 1000);
+    try {
+      api.get.mockResolvedValue(dashboard());
+      renderToday();
+      expect(await screen.findByLabelText('Worked today')).toHaveTextContent(/^6:55:0\d$/);
+      expect(screen.getByLabelText('This session')).toHaveTextContent(/^3:27:0\d$/);
+      expect(screen.getByLabelText('Current time')).toHaveTextContent(/^15:42:0\d$/); // India time, from the server
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('does not tick while you are outside', async () => {
+    api.get.mockResolvedValue(
+      dashboard({ isInside: false, workedMinutes: 208, live: { status: 'OUTSIDE', remainingMinutes: 272, expectedOutAt: null, expectedOutClock: null, ifCheckInNowOutClock: '5:37 PM' }, sessions: [{ id: 's1', inTime: '2026-09-18T02:32:00Z', inClock: '08:02', outTime: '2026-09-18T06:00:00Z', outClock: '11:30' }] }),
+    );
+    renderToday();
+    expect(await screen.findByLabelText('Worked today')).toHaveTextContent('3:28:00');
+    expect(screen.queryByLabelText('This session')).not.toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 1300));
+    expect(screen.getByLabelText('Worked today')).toHaveTextContent('3:28:00');
+    expect(screen.getByLabelText('Time remaining')).toHaveTextContent('4:32:00');
+  });
+
+  it('counts overtime up once the target is reached', async () => {
+    api.get.mockResolvedValue(
+      dashboard({ workedMinutes: 500, overtimeMinutes: 20, balanceMinutes: 20, live: { status: 'INSIDE', remainingMinutes: 0, expectedOutAt: null, expectedOutClock: null, ifCheckInNowOutClock: null } }),
+    );
+    renderToday();
+    expect(await screen.findByLabelText('Overtime')).toHaveTextContent(/^0:2\d:\d\d$/);
+    expect(screen.queryByLabelText('Time remaining')).not.toBeInTheDocument();
   });
 
   it('offers Check In when outside and never shows a Check Out button', async () => {

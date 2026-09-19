@@ -21,8 +21,10 @@ export function useDashboard() {
     queryKey: ['dashboard'],
     queryFn: () => get<Dashboard>('/dashboard'),
     staleTime: STALE_MS,
-    refetchInterval: 60_000,
+    // Another device may have checked in or out: look again often while the screen is open, and whenever it is switched back to.
+    refetchInterval: 20_000,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 
