@@ -1,5 +1,6 @@
-import { Clock, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Logo } from '@/components/Logo';
 import { Card } from '@/components/ui/primitives';
 
 /** The shared frame for every signed-out screen: app mark, name, a card, and the privacy note. */
@@ -8,9 +9,7 @@ export function AuthLayout({ children, subtitle = 'Track your hours, leave and b
     <div className="grid min-h-screen place-items-center p-4">
       <Card className="w-full max-w-sm p-6 sm:p-8">
         <div className="text-center">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary-soft text-primary">
-            <Clock size={28} aria-hidden />
-          </div>
+          <Logo size={56} className="mx-auto" />
           <h1 className="mt-3 text-2xl font-semibold">Office Hours</h1>
           <p className="mt-1 text-sm text-ink-soft">{subtitle}</p>
         </div>

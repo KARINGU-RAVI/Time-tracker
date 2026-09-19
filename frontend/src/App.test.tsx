@@ -96,6 +96,24 @@ describe('sign-in gate', () => {
     expect(api.get).not.toHaveBeenCalledWith('/dashboard');
   });
 
+  it('shows the privacy policy to anyone, signed in or not', async () => {
+    serve('401');
+    const first = mount('/privacy');
+    expect(await screen.findByRole('heading', { name: 'Privacy policy' })).toBeInTheDocument();
+    expect(screen.getByText(/Delete my account/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'karinguravi307@gmail.com' })).toHaveAttribute('href', 'mailto:karinguravi307@gmail.com');
+    first.unmount();
+    serve('google');
+    mount('/privacy');
+    expect(await screen.findByRole('heading', { name: 'Privacy policy' })).toBeInTheDocument();
+  });
+
+  it('links to the privacy policy from the sign-in page', async () => {
+    serve('401');
+    mount();
+    expect(await screen.findByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+  });
+
   it('opens the forgot-password page while signed out', async () => {
     serve('401');
     mount('/forgot-password');

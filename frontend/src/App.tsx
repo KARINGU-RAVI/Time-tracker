@@ -13,6 +13,7 @@ import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ResetPassword from '@/pages/auth/ResetPassword';
 import VerifyEmail from '@/pages/auth/VerifyEmail';
 import Login from '@/pages/Login';
+import Privacy from '@/pages/Privacy';
 import More from '@/pages/More';
 import Settings from '@/pages/Settings';
 import Setup from '@/pages/Setup';
@@ -50,12 +51,13 @@ function NotFound() {
   return <ErrorState message="That page does not exist." />;
 }
 
-/** Pages reached from an emailed link. They work signed in or out, so they sit outside the sign-in check. */
+/** Pages reached from an emailed link, plus the privacy policy. They work signed in or out, so they sit outside the sign-in check. */
 function EmailLinkRoutes() {
   return (
     <Routes>
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/privacy" element={<Privacy />} />
     </Routes>
   );
 }
@@ -71,7 +73,7 @@ function Gate() {
     return () => setUnauthorizedListener(null);
   }, [qc]);
 
-  if (pathname === '/verify-email' || pathname === '/reset-password') return <EmailLinkRoutes />;
+  if (pathname === '/verify-email' || pathname === '/reset-password' || pathname === '/privacy') return <EmailLinkRoutes />;
 
   if (session.isLoading) {
     return (

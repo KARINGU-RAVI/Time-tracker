@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Field, TextInput } from '@/components/ui/form';
 import { Banner, Card, ErrorState, Skeleton } from '@/components/ui/primitives';
@@ -260,9 +261,7 @@ export default function Setup() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-lg flex-col gap-4 p-4">
       <header className="flex items-center gap-3 pt-2">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary-soft text-primary">
-          <Clock size={22} aria-hidden />
-        </div>
+        <Logo size={44} />
         <div>
           <h1 className="text-xl font-semibold">Set up your account</h1>
           <p className="text-sm text-ink-soft" aria-live="polite">

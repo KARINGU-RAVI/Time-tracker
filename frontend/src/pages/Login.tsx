@@ -131,7 +131,8 @@ export default function Login() {
           </p>
         )}
         <p className="text-center text-xs text-ink-soft">
-          By continuing you agree to how your data is stored. You can delete your account and data any time.
+          By continuing you agree to how your data is stored. You can delete your account and data any time.{' '}
+          <Link to="/privacy" className="font-medium text-primary underline">Privacy</Link>
         </p>
       </form>
     </AuthLayout>
