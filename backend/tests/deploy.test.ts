@@ -86,6 +86,15 @@ describe('netlify.toml', () => {
     for (const ctx of ['deploy-preview', 'branch-deploy']) expect(toml.context[ctx]!.command).toMatch(/exit 1/);
   });
 
+  it('the public front page explains the app and proves site ownership to Google (needed to publish sign-in)', () => {
+    const html = readFileSync(path.join(DIST, 'index.html'), 'utf-8');
+    expect(html).toContain('<meta name="google-site-verification" content="8qznVn-lhb5wiVHThjD45ac0fEWqpNP0fA_SUJf_ihI" />');
+    expect(html).toMatch(/<meta name="description" content="[^"]*attendance and leave tracker/);
+    // Readable without running any script: purpose text and a link to the privacy policy are in the HTML itself.
+    expect(html).toContain('personal attendance and leave tracker');
+    expect(html).toContain('<a href="/privacy">Privacy policy</a>');
+  });
+
   it('the frontend csp does not need anything the built app loads from elsewhere', () => {
     // Every asset the build references must be same-origin (default-src/script-src are 'self').
     const html = readFileSync(path.join(DIST, 'index.html'), 'utf8');
