@@ -44,7 +44,7 @@ no CORS, no third-party cookie problem, and the CSRF Origin check in `backend/sr
 
 | Variable | Value | Scope |
 |---|---|---|
-| `DATABASE_URL` | Neon **pooled** URL (`...-pooler...?sslmode=require&pgbouncer=true&connect_timeout=15`) | Functions |
+| `DATABASE_URL` | Neon **pooled** URL (`...-pooler...?sslmode=require&connect_timeout=15`) | Functions |
 | `DIRECT_URL` | Neon **direct** URL (migrations only, from your own computer or CI) | Not needed at runtime |
 | `AUTH_MODE` | `google` | Functions |
 | `ALLOWED_EMAIL` | your Google address | Functions |
