@@ -52,7 +52,7 @@ function dashboard(over: Partial<Dashboard['today']> = {}, alerts: Dashboard['al
     week: {
       start: '2026-09-14', end: '2026-09-20', throughDate: '2026-09-20', requiredMinutes: 1920, requiredFullPeriodMinutes: 1920,
       workedMinutes: 1820, balanceMinutes: -100, periodOvertimeMinutes: 0, dailyOvertimeMinutes: 0, offDayWorkedMinutes: 0,
-      counts: { working: 4, wfh: 0, leaveDays: 1, optionalHolidays: 0, bereavementDays: 0, holidays: 0, weeklyOffs: 2 },
+      counts: { working: 4, wfh: 0, leaveDays: 1, optionalHolidays: 0, bereavementDays: 0, birthdayDays: 0, holidays: 0, weeklyOffs: 2 },
       incompleteDates: [], unrecordedDates: [], days: [baseDay({ date: '2026-09-14', isToday: false })], nudge: "1h 40m left to reach this week's target.",
     },
     leave: { annualBalance: 12.75, optionalRemaining: 1, nextCredit: { date: '2026-10-01', days: 1.75 }, yearEnd: null },

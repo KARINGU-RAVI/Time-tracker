@@ -26,6 +26,7 @@ enum AttendanceStatus {
   SICK_LEAVE
   BEREAVEMENT_LEAVE
   OPTIONAL_HOLIDAY
+  BIRTHDAY_LEAVE
 }
 
 enum HolidayType {
@@ -37,6 +38,7 @@ enum LeavePool {
   ANNUAL
   OPTIONAL
   BEREAVEMENT
+  BIRTHDAY
 }
 
 enum LedgerEntryType {
@@ -179,6 +181,8 @@ model LeavePolicy {
   accrualPerMonth         Decimal   @db.Decimal(5, 2)
   carryForwardCap         Decimal   @db.Decimal(5, 2)
   optionalQuota           Decimal   @db.Decimal(5, 2)
+  /// Birthday half-day allowance per year, separate from annual leave (default half a day).
+  birthdayQuota           Decimal   @default(0.5) @db.Decimal(5, 2)
   bereavementDaysPerEvent Int
   effectiveFrom           DateTime  @db.Date
   effectiveTo             DateTime? @db.Date

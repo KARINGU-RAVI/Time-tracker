@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
@@ -182,5 +182,52 @@ describe('Leave loading', () => {
     open();
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('12.75', { selector: 'p' })).toBeInTheDocument();
+  });
+});
+
+describe('Birthday half-day', () => {
+  it('shows its own allowance next to (and separate from) annual and optional leave', async () => {
+    serve(makeLeave({ birthday: { quota: 0.5, used: 0, remaining: 0.5 } }));
+    open();
+    expect(await screen.findByText('Birthday half-day', { selector: 'div' })).toBeInTheDocument();
+    expect(screen.getByText('0.5 of 0.5 remaining')).toBeInTheDocument();
+    expect(screen.getByText(/Half a day each year, separate from annual leave/)).toBeInTheDocument();
+    expect(screen.getByText('12.75', { selector: 'p' })).toBeInTheDocument(); // annual balance is its own number
+  });
+
+  it('shows none left once it has been taken', async () => {
+    serve();
+    open();
+    expect(await screen.findByText('0 of 0.5 remaining')).toBeInTheDocument();
+  });
+
+  it('is a single date and always half a day: the To date is locked and the request says so', async () => {
+    serve();
+    open();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Birthday half-day' }));
+    expect(screen.getByLabelText('To')).toBeDisabled();
+    expect(screen.getByText(/one date and always half a day/)).toBeInTheDocument();
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/preview', applyBody({ type: 'BIRTHDAY_LEAVE', half: true })));
+  });
+
+  it('even after choosing a range first, the request is one date', async () => {
+    serve();
+    open();
+    const user = userEvent.setup();
+    const to = await screen.findByLabelText('To');
+    fireEvent.change(to, { target: { value: '2026-09-25' } });
+    await user.click(screen.getByRole('radio', { name: 'Birthday half-day' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/preview', applyBody({ type: 'BIRTHDAY_LEAVE', half: true, endDate: '2026-09-18' })));
+  });
+
+  it('applies it, and warns that a second one in the year is unpaid', async () => {
+    serve(makeLeave(), okPreview({ workingDays: ['2026-09-18'], totalDays: 0.5, paid: 0, lop: 0.5, warning: '0.5 day(s) will be unpaid (salary cut).', managerMessage: 'Hi, I would like to apply for my birthday half-day on 18 Sep 2026.' }));
+    open();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Birthday half-day' }));
+    expect(await screen.findByText('0.5 day(s) will be unpaid (salary cut).')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Apply leave' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/apply', applyBody({ type: 'BIRTHDAY_LEAVE', half: true })));
   });
 });

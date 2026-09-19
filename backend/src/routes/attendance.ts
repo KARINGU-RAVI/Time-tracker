@@ -27,8 +27,8 @@ import type { AppDeps } from '../app';
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
-const STATUSES = ['WORKING', 'WFH', 'CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY'] as const;
-const LEAVE_STATUSES: AttendanceStatus[] = ['CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY'];
+const STATUSES = ['WORKING', 'WFH', 'CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY', 'BIRTHDAY_LEAVE'] as const;
+const LEAVE_STATUSES: AttendanceStatus[] = ['CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY', 'BIRTHDAY_LEAVE'];
 
 const sessionBody = z.object({
   inTime: z.string().min(1),
@@ -252,12 +252,14 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       const cfg = await loadUserConfig(prisma, user.id, now);
       assertTracked(date, cfg);
 
-      if (body.dayFraction === 0.5 && body.status !== 'CASUAL_LEAVE' && body.status !== 'SICK_LEAVE') {
+      // A birthday leave is always half a day, whatever the form sent.
+      const fraction: 1 | 0.5 = body.status === 'BIRTHDAY_LEAVE' ? 0.5 : body.dayFraction;
+      if (fraction === 0.5 && body.status !== 'CASUAL_LEAVE' && body.status !== 'SICK_LEAVE' && body.status !== 'BIRTHDAY_LEAVE') {
         throw new ApiError(400, 'HALF_DAY_NOT_ALLOWED', 'Only casual or sick leave can be a half day.');
       }
       if (LEAVE_STATUSES.includes(body.status)) {
         const probe = calculateDailyAttendance(
-          { date, status: body.status, dayFraction: body.dayFraction, sessions: [] },
+          { date, status: body.status, dayFraction: fraction, sessions: [] },
           date,
           cfg.ctx,
         );
@@ -293,7 +295,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       });
       const data = {
         status: body.status,
-        dayFraction: body.dayFraction,
+        dayFraction: fraction,
         notes: body.notes ?? null,
         managerInformed: body.managerInformed ?? before?.managerInformed ?? false,
         bereavementEventId: body.status === 'BEREAVEMENT_LEAVE' ? (body.bereavementEventId ?? null) : null,

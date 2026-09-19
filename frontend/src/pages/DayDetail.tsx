@@ -20,6 +20,7 @@ const STATUS_OPTIONS: Array<{ value: AttendanceStatus; label: string }> = [
   { value: 'SICK_LEAVE', label: 'Sick leave' },
   { value: 'BEREAVEMENT_LEAVE', label: 'Bereavement' },
   { value: 'OPTIONAL_HOLIDAY', label: 'Optional holiday' },
+  { value: 'BIRTHDAY_LEAVE', label: 'Birthday half-day' },
 ];
 
 const isLeave = (s: AttendanceStatus) => s !== 'WORKING' && s !== 'WFH';
@@ -67,7 +68,8 @@ export default function DayDetail() {
 
   const { day } = data;
   const st = dayStatus(day);
-  const halfAllowed = status === 'CASUAL_LEAVE' || status === 'SICK_LEAVE';
+  const birthday = status === 'BIRTHDAY_LEAVE';
+  const halfAllowed = status === 'CASUAL_LEAVE' || status === 'SICK_LEAVE' || birthday;
   const hasRecord = data.status !== null;
   const events = leave.data?.bereavement.events ?? [];
 
@@ -76,7 +78,7 @@ export default function DayDetail() {
     setDay.mutate(
       {
         status,
-        dayFraction: halfAllowed && half ? 0.5 : 1,
+        dayFraction: birthday || (halfAllowed && half) ? 0.5 : 1,
         notes: notes.trim() ? notes.trim() : null,
         managerInformed: informed,
         bereavementEventId: status === 'BEREAVEMENT_LEAVE' ? eventId || null : null,
@@ -211,8 +213,8 @@ export default function DayDetail() {
             </div>
 
             <label className={cn('mt-4 flex items-center gap-2 text-sm', !halfAllowed && 'opacity-50')}>
-              <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={half && halfAllowed} disabled={!halfAllowed} onChange={(e) => setHalf(e.target.checked)} />
-              Half day {!halfAllowed && <span className="text-xs text-ink-soft">(only for casual or sick leave)</span>}
+              <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={birthday || (half && halfAllowed)} disabled={!halfAllowed || birthday} onChange={(e) => setHalf(e.target.checked)} />
+              Half day {birthday ? <span className="text-xs text-ink-soft">(a birthday leave is always a half day)</span> : !halfAllowed && <span className="text-xs text-ink-soft">(only for casual, sick or birthday leave)</span>}
             </label>
 
             {status === 'BEREAVEMENT_LEAVE' && (

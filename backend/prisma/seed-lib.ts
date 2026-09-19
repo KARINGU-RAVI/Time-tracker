@@ -52,6 +52,7 @@ export async function seedOwner(prisma: PrismaClient, opts: SeedOptions) {
         accrualPerMonth: 1.75,
         carryForwardCap: 3,
         optionalQuota: 2,
+        birthdayQuota: 0.5,
         bereavementDaysPerEvent: 5,
         effectiveFrom: d('2026-01-01'),
       },
@@ -75,6 +76,9 @@ export async function seedOwner(prisma: PrismaClient, opts: SeedOptions) {
       entry('ANNUAL', 'ADJUSTMENT', -5, '2026-09-19', 'Leave taken before tracking began'),
       entry('OPTIONAL', 'GRANT', 2, '2026-01-01', 'Optional leave quota for 2026'),
       entry('OPTIONAL', 'ADJUSTMENT', -1, '2026-09-19', 'Optional leave used before tracking began'),
+      // Birthday half-day: 0.5 a year, separate from annual leave; already taken on 14 Jul 2026.
+      { userId: user.id, pool: 'BIRTHDAY' as const, type: 'GRANT' as const, days: 0.5, effectiveDate: d('2026-01-01'), leaveYear: 2026, note: 'Birthday half-day allowance for 2026' },
+      { userId: user.id, pool: 'BIRTHDAY' as const, type: 'ADJUSTMENT' as const, days: -0.5, effectiveDate: d('2026-09-19'), leaveYear: 2026, note: 'Birthday half-day taken before tracking began' },
     ];
     await prisma.leaveLedgerEntry.createMany({ data: rows });
   }

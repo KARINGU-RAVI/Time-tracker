@@ -243,11 +243,11 @@ export default function Today() {
               Worked <span className="font-semibold">{formatDuration(data.week.workedMinutes)}</span> of{' '}
               <span className="font-semibold">{formatDuration(data.week.requiredMinutes)}</span>
             </p>
-            {(data.week.counts.leaveDays > 0 || data.week.counts.holidays > 0) && (
+            {(data.week.counts.leaveDays > 0 || data.week.counts.holidays > 0 || data.week.counts.birthdayDays > 0) && (
               <p className="mt-0.5 text-xs text-ink-soft">
                 Required is {formatDuration(data.week.requiredMinutes)} because of{' '}
-                {data.week.counts.leaveDays + data.week.counts.holidays} leave/holiday day
-                {data.week.counts.leaveDays + data.week.counts.holidays > 1 ? 's' : ''}.
+                {data.week.counts.leaveDays + data.week.counts.holidays + data.week.counts.birthdayDays} leave/holiday day
+                {data.week.counts.leaveDays + data.week.counts.holidays + data.week.counts.birthdayDays > 1 ? 's' : ''}.
               </p>
             )}
             <div className="mt-3 grid grid-flow-col auto-cols-fr gap-2">

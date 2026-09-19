@@ -111,3 +111,9 @@ describe('toApiError', () => {
     expect(toApiError(new Error('SELECT * FROM secrets')).message).toBe('Something went wrong. Please try again.');
   });
 });
+
+describe('birthday half-day status', () => {
+  it('has its own label, in the leave colour with an icon (never colour alone)', () => {
+    expect(dayStatus(day({ kind: 'BIRTHDAY_HALF_DAY', requiredMinutes: 240 }))).toMatchObject({ label: 'Birthday half-day', tone: 'leave', icon: 'leave' });
+  });
+});

@@ -168,3 +168,35 @@ describe('DayDetail', () => {
     expect(await screen.findByText('Thu, 17 Sep 2026')).toBeInTheDocument();
   });
 });
+
+describe('Birthday half-day on the day screen', () => {
+  it('is offered as a status, and its half-day box is ticked and locked', async () => {
+    serve(makeDetail({}, { date: '2026-09-17' }));
+    open();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Birthday half-day' }));
+    const half = screen.getByLabelText(/Half day/);
+    expect(half).toBeChecked();
+    expect(half).toBeDisabled();
+    expect(screen.getByText(/always a half day/)).toBeInTheDocument();
+  });
+
+  it('saves as a half day even though the box could not be changed', async () => {
+    serve(makeDetail({}, { date: '2026-09-17' }));
+    api.put.mockResolvedValue(makeDetail({ status: 'BIRTHDAY_LEAVE', dayFraction: 0.5 }));
+    open();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Birthday half-day' }));
+    await user.click(screen.getByRole('button', { name: 'Save day' }));
+    await waitFor(() =>
+      expect(api.put).toHaveBeenCalledWith('/attendance/2026-09-17', { status: 'BIRTHDAY_LEAVE', dayFraction: 0.5, notes: null, managerInformed: false, bereavementEventId: null }),
+    );
+  });
+
+  it('a day already saved as a birthday half-day opens with it selected', async () => {
+    serve(makeDetail({ status: 'BIRTHDAY_LEAVE', dayFraction: 0.5 }, { date: '2026-09-17', kind: 'BIRTHDAY_HALF_DAY', requiredMinutes: 240 }));
+    open();
+    expect(await screen.findByRole('radio', { name: 'Birthday half-day', checked: true })).toBeInTheDocument();
+    expect(screen.getAllByText('Birthday half-day').length).toBeGreaterThan(0); // the status pill too
+  });
+});

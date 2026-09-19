@@ -25,6 +25,8 @@ interface Defaults {
     carriedForward: number;
     annualUsedSoFar: number;
     optionalUsedSoFar: number;
+    birthdayQuota: number;
+    birthdayTaken: boolean;
     creditsFromMonth: number;
   };
   holidays: { companyCount: number };
@@ -34,6 +36,7 @@ interface Preview {
   preview: {
     annual: { carriedIn: number; credited: number; used: number; balance: number };
     optional: { quota: number; used: number; remaining: number };
+    birthday: { quota: number; used: number; remaining: number };
     trackingStartDate: string;
   };
   holidayCount: number;
@@ -60,6 +63,8 @@ interface Form {
   carriedForward: string;
   annualUsedSoFar: string;
   optionalUsedSoFar: string;
+  birthdayQuota: string;
+  birthdayTaken: boolean;
   creditsFromMonth: string;
   holidaySource: 'company' | 'list' | 'none';
   holidayList: HolidayRow[];
@@ -108,13 +113,15 @@ function fromDefaults(d: Defaults): Form {
     carriedForward: s(d.leave.carriedForward),
     annualUsedSoFar: s(d.leave.annualUsedSoFar),
     optionalUsedSoFar: s(d.leave.optionalUsedSoFar),
+    birthdayQuota: s(d.leave.birthdayQuota),
+    birthdayTaken: d.leave.birthdayTaken,
     creditsFromMonth: s(d.leave.creditsFromMonth),
     holidaySource: d.holidays.companyCount > 0 ? 'company' : 'none',
     holidayList: [],
   };
 }
 
-const leaveKeys = ['annualEntitlement', 'accrualPerMonth', 'carryForwardCap', 'carriedForward', 'annualUsedSoFar'] as const;
+const leaveKeys = ['annualEntitlement', 'accrualPerMonth', 'carryForwardCap', 'carriedForward', 'annualUsedSoFar', 'birthdayQuota'] as const;
 
 /** The request body the server expects (the same shape for the preview and the final save). */
 export function toRequest(f: Form) {
@@ -136,6 +143,8 @@ export function toRequest(f: Form) {
       carriedForward: num(f.carriedForward),
       annualUsedSoFar: num(f.annualUsedSoFar),
       optionalUsedSoFar: Math.round(num(f.optionalUsedSoFar)),
+      birthdayQuota: num(f.birthdayQuota),
+      birthdayTaken: f.birthdayTaken && num(f.birthdayQuota) > 0,
       creditsFromMonth: Math.round(num(f.creditsFromMonth)) || 1,
     },
     holidays: { source: f.holidaySource, list: f.holidaySource === 'list' ? f.holidayList : undefined },
@@ -348,6 +357,11 @@ export default function Setup() {
             <NumberField label="Carried forward from last year" value={form.carriedForward} onChange={(v) => set('carriedForward', v)} suffix="days" />
             <NumberField label="Annual leave taken this year so far" value={form.annualUsedSoFar} onChange={(v) => set('annualUsedSoFar', v)} suffix="days" hint="Sick and casual leave taken before your tracking start date." />
             <NumberField label="Optional leave taken this year so far" value={form.optionalUsedSoFar} onChange={(v) => set('optionalUsedSoFar', v)} />
+            <NumberField label="Birthday half-day allowance per year" value={form.birthdayQuota} onChange={(v) => set('birthdayQuota', v)} suffix="days" hint="Half a day is usual. It is separate from annual leave and does not carry over." />
+            <label className="flex items-start gap-3 text-sm">
+              <input type="checkbox" checked={form.birthdayTaken && num(form.birthdayQuota) > 0} disabled={num(form.birthdayQuota) <= 0} onChange={(e) => set('birthdayTaken', e.target.checked)} className="mt-1" />
+              <span>I have already taken my birthday half-day this year</span>
+            </label>
             <NumberField label="First month you earned leave this year" value={form.creditsFromMonth} onChange={(v) => set('creditsFromMonth', v)} hint="1 for January. Use a later month if you joined this year." />
             {previewError && <Banner tone="bad">{previewError}</Banner>}
             <div className="rounded-2xl border border-primary/30 bg-primary-soft/40 p-4" aria-live="polite">
@@ -358,6 +372,8 @@ export default function Setup() {
                   <dd className="text-right text-lg font-semibold tabular-nums">{days(p.annual.balance)}</dd>
                   <dt className="text-ink-soft">Optional leave</dt>
                   <dd className="text-right text-lg font-semibold tabular-nums">{p.optional.remaining} left</dd>
+                  <dt className="text-ink-soft">Birthday half-day</dt>
+                  <dd className="text-right text-lg font-semibold tabular-nums">{p.birthday.remaining} left</dd>
                 </dl>
               ) : (
                 <p className="mt-2 text-sm text-ink-soft">Checking…</p>

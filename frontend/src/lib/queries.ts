@@ -131,7 +131,7 @@ export function useDeleteDay(date: string) {
 }
 
 export interface LeaveInput {
-  type: 'CASUAL_LEAVE' | 'SICK_LEAVE' | 'BEREAVEMENT_LEAVE' | 'OPTIONAL_HOLIDAY';
+  type: 'CASUAL_LEAVE' | 'SICK_LEAVE' | 'BEREAVEMENT_LEAVE' | 'OPTIONAL_HOLIDAY' | 'BIRTHDAY_LEAVE';
   startDate: string;
   endDate: string;
   half: boolean;

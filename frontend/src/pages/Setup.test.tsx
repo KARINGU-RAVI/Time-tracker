@@ -13,18 +13,19 @@ const DEFAULTS = {
   today: '2026-09-19',
   profile: { name: 'Given Name' },
   work: { dailyMinutes: 480, weeklyMinutes: 2400, workingDays: [1, 2, 3, 4, 5], weekStartsOn: 1, trackingStartDate: '2026-09-21' },
-  leave: { annualEntitlement: 21, accrualPerMonth: 1.75, carryForwardCap: 3, optionalQuota: 2, bereavementDaysPerEvent: 5, carriedForward: 0, annualUsedSoFar: 0, optionalUsedSoFar: 0, creditsFromMonth: 1 },
+  leave: { annualEntitlement: 21, accrualPerMonth: 1.75, carryForwardCap: 3, optionalQuota: 2, bereavementDaysPerEvent: 5, carriedForward: 0, annualUsedSoFar: 0, optionalUsedSoFar: 0, birthdayQuota: 0.5, birthdayTaken: false, creditsFromMonth: 1 },
   holidays: { companyCount: 0 },
 };
 
 /** A stand-in for the server's preview, with the same arithmetic. */
-function previewFor(body: { leave: { carriedForward: number; annualUsedSoFar: number; optionalQuota: number; optionalUsedSoFar: number } }) {
+function previewFor(body: { leave: { carriedForward: number; annualUsedSoFar: number; optionalQuota: number; optionalUsedSoFar: number; birthdayQuota: number; birthdayTaken: boolean } }) {
   const l = body.leave;
   const credited = 15.75;
   return {
     preview: {
       annual: { carriedIn: l.carriedForward, credited, used: l.annualUsedSoFar, balance: l.carriedForward + credited - l.annualUsedSoFar },
       optional: { quota: l.optionalQuota, used: l.optionalUsedSoFar, remaining: l.optionalQuota - l.optionalUsedSoFar },
+      birthday: { quota: l.birthdayQuota, used: l.birthdayTaken ? l.birthdayQuota : 0, remaining: l.birthdayTaken ? 0 : l.birthdayQuota },
       trackingStartDate: '2026-09-21',
     },
     holidayCount: 0,
@@ -243,7 +244,7 @@ describe('the setup wizard', () => {
       expect(body).toEqual({
         profile: { name: 'Given Name', employeeId: undefined, designation: undefined, businessUnit: undefined },
         work: { dailyMinutes: 480, weeklyMinutes: 2400, workingDays: [1, 2, 3, 4, 5], weekStartsOn: 1, trackingStartDate: '2026-09-21' },
-        leave: { annualEntitlement: 21, accrualPerMonth: 1.75, carryForwardCap: 3, optionalQuota: 2, bereavementDaysPerEvent: 5, carriedForward: 2, annualUsedSoFar: 5, optionalUsedSoFar: 0, creditsFromMonth: 1 },
+        leave: { annualEntitlement: 21, accrualPerMonth: 1.75, carryForwardCap: 3, optionalQuota: 2, bereavementDaysPerEvent: 5, carriedForward: 2, annualUsedSoFar: 5, optionalUsedSoFar: 0, birthdayQuota: 0.5, birthdayTaken: false, creditsFromMonth: 1 },
         holidays: { source: 'none', list: undefined },
         acknowledged: true,
       });
@@ -276,5 +277,42 @@ describe('the setup wizard', () => {
       await user.click(screen.getByRole('button', { name: 'Finish setup' }));
       expect(await screen.findByRole('alert')).toHaveTextContent('This account is already set up.');
     });
+  });
+});
+
+describe('birthday half-day in the setup wizard', () => {
+  it('asks for the allowance and whether it was already taken, and shows what is left', async () => {
+    mount();
+    const user = userEvent.setup();
+    await toLeaveStep(user);
+    expect(screen.getByLabelText('Birthday half-day allowance per year')).toHaveValue('0.5');
+    expect(await screen.findByText('0.5 left')).toBeInTheDocument(); // the preview: nothing taken yet
+    await user.click(screen.getByLabelText('I have already taken my birthday half-day this year'));
+    expect(await screen.findByText('0 left')).toBeInTheDocument();
+  });
+
+  it('a zero allowance disables the "already taken" box', async () => {
+    mount();
+    const user = userEvent.setup();
+    await toLeaveStep(user);
+    const allowance = screen.getByLabelText('Birthday half-day allowance per year');
+    await user.clear(allowance);
+    await user.type(allowance, '0');
+    expect(screen.getByLabelText('I have already taken my birthday half-day this year')).toBeDisabled();
+  });
+
+  it('sends the birthday answers to the server when finishing', async () => {
+    mount();
+    const user = userEvent.setup();
+    await toLeaveStep(user);
+    await user.click(screen.getByLabelText('I have already taken my birthday half-day this year'));
+    await screen.findByText('0 left');
+    await next(user);
+    await next(user);
+    await user.click(await screen.findByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Finish setup' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/setup/complete', expect.anything()));
+    const body = api.post.mock.calls.find((c) => c[0] === '/setup/complete')![1];
+    expect(body.leave).toMatchObject({ birthdayQuota: 0.5, birthdayTaken: true });
   });
 });

@@ -48,7 +48,7 @@ describe('seed + engine contract', () => {
   it('is idempotent', async () => {
     await seedOwner(prisma, { email, trackingStart: '2026-09-21' });
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-    expect(await prisma.leaveLedgerEntry.count({ where: { userId: user.id } })).toBe(13);
+    expect(await prisma.leaveLedgerEntry.count({ where: { userId: user.id } })).toBe(15);
     expect(await prisma.workRule.count({ where: { userId: user.id } })).toBe(1);
     expect(await prisma.leavePolicy.count({ where: { userId: user.id } })).toBe(1);
   });

@@ -34,7 +34,7 @@ const totals = makePeriod({
   requiredMinutes: 96 * 60,
   balanceMinutes: -110,
   periodOvertimeMinutes: 30,
-  counts: { working: 12, wfh: 1, leaveDays: 1, optionalHolidays: 0, bereavementDays: 0, holidays: 1, weeklyOffs: 8 },
+  counts: { working: 12, wfh: 1, leaveDays: 1, optionalHolidays: 0, bereavementDays: 0, birthdayDays: 0, holidays: 1, weeklyOffs: 8 },
   lopDays: 0,
 });
 

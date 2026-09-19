@@ -11,6 +11,8 @@ export interface PeriodCounts {
   leaveDays: number;
   optionalHolidays: number;
   bereavementDays: number;
+  /** Birthday half-days taken (each counts 0.5). */
+  birthdayDays: number;
   holidays: number;
   weeklyOffs: number;
 }
@@ -59,6 +61,7 @@ export function calculatePeriod(
     leaveDays: 0,
     optionalHolidays: 0,
     bereavementDays: 0,
+    birthdayDays: 0,
     holidays: 0,
     weeklyOffs: 0,
   };
@@ -101,6 +104,10 @@ export function calculatePeriod(
         break;
       case 'BEREAVEMENT':
         counts.bereavementDays += 1;
+        break;
+      case 'BIRTHDAY_HALF_DAY':
+        counts.working += 1; // the other half of the day is worked
+        counts.birthdayDays += 0.5;
         break;
       case 'HOLIDAY':
         counts.holidays += 1;
