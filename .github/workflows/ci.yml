@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: oht_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/oht_ci
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/oht_ci
+      ALLOWED_EMAIL: ci@example.test
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate the database client
+        run: npx prisma generate --schema backend/prisma/schema.prisma
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy --schema backend/prisma/schema.prisma
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # The build runs before the tests because the deployment simulation test serves frontend/dist.
+      - name: Build the app
+        run: npm run build -w @oht/frontend
+
+      - name: Test
+        run: npm test
+
+  deploy:
+    name: Deploy to Netlify (only after tests pass)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Inert until you turn it on: set the repository variable DEPLOY_WITH_ACTIONS to "true"
+    # (and turn OFF Netlify's own build-on-push, or every push would be deployed twice).
+    if: ${{ vars.DEPLOY_WITH_ACTIONS == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    environment: production
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      SITE_URL: ${{ vars.SITE_URL }}
+      VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build and deploy to production
+        run: npx --yes netlify-cli@latest deploy --build --prod --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN"
+
+      - name: Smoke test the live site
+        run: node scripts/smoke.mjs "$SITE_URL"

@@ -1,0 +1,70 @@
+# Netlify configuration for Office Hours Tracker.
+# One site, one origin: static React app + one Netlify Function that serves the whole API under /api.
+# See docs/06-deployment-runbook.md for the step-by-step setup.
+
+[build]
+  # Repository root (npm workspaces live here).
+  base = "."
+  # Generate the Prisma client (includes the Linux engine Netlify runs on), then build the React app.
+  command = "npx prisma generate --schema backend/prisma/schema.prisma && npm run build -w @oht/frontend"
+  publish = "frontend/dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+  # Keep Prisma out of the bundle and ship it (with its generated client and engine) next to the function.
+  external_node_modules = ["@prisma/client"]
+  included_files = [
+    "node_modules/.prisma/client/**",
+    "node_modules/@prisma/client/**",
+    "backend/prisma/schema.prisma",
+  ]
+
+# --- Routing -------------------------------------------------------------------------------------------
+# The API first, forced, so a file can never shadow it.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# Single-page app: every other path serves the app (deep links like /day/2026-09-17 and refreshes work).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# --- Security headers ----------------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    # Only our own files, plus Google's sign-in script, frame and styles (required by Google Identity Services).
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://*.googleusercontent.com; font-src 'self'; connect-src 'self' https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+# Hashed build files never change: cache them for a year. The page itself must always be re-checked.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# --- Safety: no deploy previews -------------------------------------------------------------------------
+# A preview build would run with the production environment variables (database, secrets). Fail it on purpose.
+# (Also switch previews off in the Netlify site settings.)
+[context.deploy-preview]
+  command = "echo 'Deploy previews are disabled for this site.' && exit 1"
+
+[context.branch-deploy]
+  command = "echo 'Branch deploys are disabled for this site.' && exit 1"

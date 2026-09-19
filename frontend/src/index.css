@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+/* Design tokens from the approved Stitch designs (docs/03-stitch-status.md). */
+@theme {
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+
+  --color-primary: #3b4cca;
+  --color-primary-soft: #dfe0ff;
+  --color-on-primary: #ffffff;
+
+  --color-surface: #faf8fd;
+  --color-card: #ffffff;
+  --color-muted: #ededf5;
+  --color-line: #e0e2ee;
+  --color-ink: #2f323b;
+  --color-ink-soft: #5c5f69;
+
+  /* Status colours. Always paired with an icon or text, never colour alone. */
+  --color-ok: #1f9d55;
+  --color-warn: #d99a00;
+  --color-wfh: #2f80ed;
+  --color-leave: #e8762b;
+  --color-holiday: #1aa6a6;
+  --color-off: #9aa0a6;
+  --color-bad: #d64545;
+
+  --radius-card: 0.75rem;
+}
+
+:root[data-theme='dark'] {
+  --color-surface: #101116;
+  --color-card: #1a1c23;
+  --color-muted: #262933;
+  --color-line: #2f3340;
+  --color-ink: #eceef5;
+  --color-ink-soft: #a3a7b5;
+  --color-primary-soft: #262b5c;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Times and durations must not jump as digits change. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot {
+    animation: none;
+  }
+}
