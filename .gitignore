@@ -7,3 +7,6 @@ dist/
 .netlify/
 coverage/
 
+# Real environment files (never commit); templates end in .example
+*.env
+deploy/netlify.env
