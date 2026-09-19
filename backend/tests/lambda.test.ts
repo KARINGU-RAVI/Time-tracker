@@ -3,7 +3,9 @@ import type { Context, Handler } from 'aws-lambda';
 import { afterAll, describe, expect, it } from 'vitest';
 import { istInstant } from '@oht/engine';
 import { loadProductionConfig } from '../src/config';
+import { MemoryEmailSender } from '../src/email';
 import type { GoogleVerifier } from '../src/google';
+import { allowAllTurnstile } from '../src/turnstile';
 import { createHandler, normalisePath } from '../src/lambda';
 import { seedOwner } from '../prisma/seed-lib';
 
@@ -14,7 +16,9 @@ const email = `lambda-${Date.now()}-${process.pid}@example.test`;
 
 const env = (over: Record<string, string | undefined> = {}): NodeJS.ProcessEnv => ({
   DATABASE_URL: 'postgresql://unused@localhost/unused',
-  ALLOWED_EMAIL: email,
+  BREVO_API_KEY: 'xkeysib-test',
+  EMAIL_FROM: 'sender@example.test',
+  TURNSTILE_SECRET_KEY: 'turnstile-secret',
   GOOGLE_CLIENT_ID: 'client-123.apps.googleusercontent.com',
   SESSION_SECRET: SECRET,
   APP_ORIGIN: ORIGIN,
@@ -30,7 +34,7 @@ const verifyGoogle: GoogleVerifier = async (credential) => {
 let handler: Handler;
 async function setup() {
   await seedOwner(prisma, { email, trackingStart: '2026-09-01' });
-  handler = createHandler(env(), { prisma, verifyGoogle, clock: () => istInstant('2026-09-21', '10:00') });
+  handler = createHandler(env(), { prisma, verifyGoogle, email: new MemoryEmailSender(), verifyTurnstile: allowAllTurnstile, clock: () => istInstant('2026-09-21', '10:00') });
 }
 
 afterAll(async () => {
@@ -93,8 +97,15 @@ describe('start-up configuration', () => {
     expect(loadProductionConfig(env({ APP_ORIGIN: 'https://hours.example.test/' })).appOrigin).toBe(ORIGIN);
   });
 
-  it.each(['DATABASE_URL', 'ALLOWED_EMAIL', 'GOOGLE_CLIENT_ID', 'SESSION_SECRET', 'APP_ORIGIN'])('refuses to start without %s', (key) => {
+  it.each(['DATABASE_URL', 'GOOGLE_CLIENT_ID', 'SESSION_SECRET', 'APP_ORIGIN', 'BREVO_API_KEY', 'EMAIL_FROM', 'TURNSTILE_SECRET_KEY'])('refuses to start without %s', (key) => {
     expect(() => loadProductionConfig(env({ [key]: undefined }))).toThrow(new RegExp(key));
+  });
+
+  it('checks the email sender and the account cap', () => {
+    expect(() => loadProductionConfig(env({ EMAIL_FROM: 'not-an-email' }))).toThrow(/EMAIL_FROM/);
+    expect(loadProductionConfig(env()).maxAccounts).toBe(200);
+    expect(loadProductionConfig(env({ MAX_ACCOUNTS: '50' })).maxAccounts).toBe(50);
+    for (const bad of ['0', '-1', 'many', '1.5', '999999']) expect(() => loadProductionConfig(env({ MAX_ACCOUNTS: bad })), bad).toThrow(/MAX_ACCOUNTS/);
   });
 
   it('never allows the development login, even if NODE_ENV is not set', () => {

@@ -21,7 +21,7 @@ export async function seedOwner(prisma: PrismaClient, opts: SeedOptions) {
   const user = await prisma.user.upsert({
     where: { email: opts.email },
     update: {},
-    create: { email: opts.email },
+    create: { email: opts.email, setupCompletedAt: new Date(), emailVerifiedAt: new Date(), isAdmin: true },
   });
 
   await prisma.userSettings.upsert({

@@ -37,7 +37,7 @@ export function createApp(deps: AppDeps) {
   if (deps.auth) {
     // Public sign-in routes, then the CSRF guard for everything that writes.
     app.use('/api', csrfGuard(deps.auth.appOrigin));
-    app.use('/api', authRoutes(deps.prisma, deps.auth, deps.authenticate));
+    app.use('/api', authRoutes(deps.prisma, deps.auth, deps.authenticate, deps.clock));
   }
 
   const api = Router();

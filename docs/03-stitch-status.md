@@ -27,3 +27,12 @@ Stitch projects (private, in the user's Google account):
 
 ## Still to design
 - Month view of Summary, unpaid-leave (LOP) warning state on Leave, loading / empty / error / offline states, dark theme, "Add session" mobile bottom sheet (if missing).
+
+## Multi-user auth screens (mobile project 2797482494668543841, added 19 Sep 2026)
+| Screen | Screen id | Notes |
+|---|---|---|
+| Sign in (+ 2 error states) | eeef5bc139a847ea89190c0bd974f3d2 | Error preview uses an invented address (alden.walker@domain.io): replace with you@example.com |
+| Create account (+ 3 error states, Turnstile placeholder, password checklist) | a0c4b73e55a34f0abb5690a13ff8b240 | |
+| Email flow canvas: check your email, verified, forgot password, new password (+ expired link) | 11f19f8ae79e4b069c0a84ae461ad5d5 | Generated as a wide desktop-size canvas (2560 px) with four phone frames |
+| Setup wizard (5 frames: profile, work hours, leave, holidays, review) | NOT GENERATED: timed out on first try, list before retrying | Split into two prompts if it times out again |
+Desktop versions of the auth screens are not designed: the layout is a centered card, same as mobile.
