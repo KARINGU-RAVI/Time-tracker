@@ -1,6 +1,6 @@
 import { Component, useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 import { ErrorState, Skeleton } from '@/components/ui/primitives';
 import { ApiError, setUnauthorizedListener } from '@/lib/api';
@@ -8,6 +8,7 @@ import { useSession } from '@/lib/queries';
 import Calendar from '@/pages/Calendar';
 import DayDetail from '@/pages/DayDetail';
 import Holidays from '@/pages/Holidays';
+import Landing from '@/pages/Landing';
 import Leave from '@/pages/Leave';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ResetPassword from '@/pages/auth/ResetPassword';
@@ -85,6 +86,8 @@ function Gate() {
   if (session.error instanceof ApiError && session.error.status === 401) {
     return (
       <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/signin" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Login />} />
       </Routes>
@@ -108,6 +111,7 @@ function Gate() {
         <Route path="more" element={<More />} />
         <Route path="holidays" element={<Holidays />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="signin" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

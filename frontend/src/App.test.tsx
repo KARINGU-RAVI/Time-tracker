@@ -66,19 +66,46 @@ describe('sign-in gate', () => {
     expect(await screen.findByLabelText('Worked today')).toBeInTheDocument();
   });
 
-  it('shows the login page when there is no session, and never the app', async () => {
+  it('shows a public front page that explains the app to visitors who are not signed in, and never the app', async () => {
     serve('401');
     mount();
-    expect(await screen.findByRole('heading', { name: 'Office Hours' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Sign in', selected: true })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Create account' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Track your working hours, leave and balance.' })).toBeInTheDocument();
+    expect(screen.getByText(/personal attendance and leave tracker/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Create a free account' })).toHaveAttribute('href', '/signin?mode=signup');
+    expect(screen.getAllByRole('link', { name: /Sign in/ })[0]).toHaveAttribute('href', '/signin');
+    expect(screen.getAllByRole('link', { name: /rivacy policy/ }).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText('Worked today')).not.toBeInTheDocument();
     expect(api.get).not.toHaveBeenCalledWith('/dashboard');
   });
 
+  it('shows the login page at /signin, and for any other address when signed out', async () => {
+    serve('401');
+    const first = mount('/signin');
+    expect(await screen.findByRole('heading', { name: 'Office Hours' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Sign in', selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Create account' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Worked today')).not.toBeInTheDocument();
+    first.unmount();
+    mount('/calendar');
+    expect(await screen.findByRole('tab', { name: 'Sign in', selected: true })).toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('opens on the Create account tab from the front-page button', async () => {
+    serve('401');
+    mount('/signin?mode=signup');
+    expect(await screen.findByRole('tab', { name: 'Create account', selected: true })).toBeInTheDocument();
+  });
+
+  it('a signed-in person who lands on /signin is sent to the app', async () => {
+    serve('google');
+    mount('/signin');
+    expect(await screen.findByLabelText('Worked today')).toBeInTheDocument();
+  });
+
   it('still offers email sign-in when Google is not configured (no dead page)', async () => {
     serve('401');
-    mount();
+    mount('/signin');
     expect(await screen.findByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
@@ -110,7 +137,7 @@ describe('sign-in gate', () => {
 
   it('links to the privacy policy from the sign-in page', async () => {
     serve('401');
-    mount();
+    mount('/signin');
     expect(await screen.findByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
   });
 

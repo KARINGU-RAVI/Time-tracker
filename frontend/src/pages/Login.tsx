@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { googleConfigured, GoogleButton } from '@/components/auth/GoogleButton';
@@ -16,7 +16,8 @@ type Mode = 'signin' | 'signup';
 
 export default function Login() {
   const qc = useQueryClient();
-  const [mode, setMode] = useState<Mode>('signin');
+  const [params] = useSearchParams();
+  const [mode, setMode] = useState<Mode>(params.get('mode') === 'signup' ? 'signup' : 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
