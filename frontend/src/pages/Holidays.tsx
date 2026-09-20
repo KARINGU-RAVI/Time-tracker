@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Download, Plus, Trash2, Upload } from 'lucide-react';
+import { HolidayImageCard } from '@/components/HolidayImageCard';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Banner, Card, Chip, ErrorState, Field, Skeleton, inputClass } from '@/components/ui/primitives';
@@ -54,6 +55,8 @@ export default function Holidays() {
           <Download size={16} aria-hidden /> Download template
         </Button>
       </div>
+
+      <HolidayImageCard />
 
       {q.isError ? (
         <ErrorState message={q.error.message} onRetry={() => q.refetch()} />

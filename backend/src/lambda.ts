@@ -53,8 +53,8 @@ export function createHandler(env: NodeJS.ProcessEnv = process.env, overrides: L
   });
 
   const inner = serverless(app, {
-    // Netlify sends Set-Cookie as one value per header; keep them separate.
-    binary: false,
+    // Netlify sends Set-Cookie as one value per header; keep them separate. Pictures must travel as bytes, not text.
+    binary: ['image/png', 'image/jpeg', 'image/webp'],
   }) as unknown as Handler;
 
   return (event, context, callback) => {

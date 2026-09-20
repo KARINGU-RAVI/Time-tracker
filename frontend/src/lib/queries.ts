@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, del, get, post, put } from './api';
+import { ApiError, del, get, post, put, putBinary } from './api';
+import { shrinkImage } from './image';
 import type {
   AttendanceStatus,
   Dashboard,
@@ -60,6 +61,33 @@ export function useHolidays(year: number) {
   return useQuery({
     queryKey: ['holidays', year],
     queryFn: () => get<{ holidays: Holiday[]; summary: { company: number; optional: number } }>('/holidays', { year }),
+  });
+}
+
+export type HolidayImageMeta =
+  | { exists: false }
+  | { exists: true; mimeType: string; width: number; height: number; fileName: string | null; updatedAt: string };
+
+export function useHolidayImage() {
+  return useQuery({ queryKey: ['holiday-image'], queryFn: () => get<HolidayImageMeta>('/holidays/image') });
+}
+
+export function useUploadHolidayImage() {
+  const qc = useQueryClient();
+  return useMutation<HolidayImageMeta, Error, File>({
+    mutationFn: async (file) => {
+      const shrunk = await shrinkImage(file);
+      return putBinary<HolidayImageMeta>('/holidays/image', shrunk.blob, shrunk.blob.type, { width: shrunk.width, height: shrunk.height, name: shrunk.name });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['holiday-image'] }),
+  });
+}
+
+export function useDeleteHolidayImage() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => del('/holidays/image'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['holiday-image'] }),
   });
 }
 

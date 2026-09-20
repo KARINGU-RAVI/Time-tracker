@@ -8,6 +8,7 @@ import { attendanceRoutes } from './routes/attendance';
 import { backupRoutes } from './routes/backup';
 import { authRoutes, csrfGuard, type AuthConfig } from './routes/auth';
 import { dashboardRoutes } from './routes/dashboard';
+import { holidayImageRoutes } from './routes/holidayImage';
 import { holidayRoutes } from './routes/holidays';
 import { leaveRoutes } from './routes/leave';
 import { ruleRoutes } from './routes/rules';
@@ -52,6 +53,8 @@ export function createApp(deps: AppDeps) {
   api.use(backupRoutes(deps));
   api.use(dashboardRoutes(deps));
   api.use(ruleRoutes(deps));
+  // Before holidayRoutes: /holidays/image must not be read as /holidays/:id.
+  api.use(holidayImageRoutes(deps));
   api.use(holidayRoutes(deps));
   api.use(leaveRoutes(deps));
   api.use((_req, _res, next) => next(new ApiError(404, 'NOT_FOUND', 'That endpoint does not exist.')));
