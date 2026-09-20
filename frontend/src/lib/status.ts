@@ -31,6 +31,8 @@ export function dayStatus(d: Day): StatusInfo {
       return { label: 'Optional holiday', tone: 'holiday', icon: 'star' };
     case 'BEREAVEMENT':
       return { label: 'Bereavement', tone: 'leave', icon: 'leave' };
+    case 'BIRTHDAY_HALF_DAY':
+      return { label: 'Birthday half-day', tone: 'leave', icon: 'leave' };
     case 'BEFORE_TRACKING':
       return { label: 'Not tracked', tone: 'neutral', icon: 'dot' };
     case 'WFH':

@@ -28,6 +28,8 @@ function ownerAnswers(over: Partial<SetupInput['leave']> = {}, work: Partial<Set
       carriedForward: 2,
       annualUsedSoFar: 5,
       optionalUsedSoFar: 1,
+      birthdayQuota: 0.5,
+      birthdayTaken: true, // the owner took it on 14 Jul 2026
       creditsFromMonth: 1,
       ...over,
     },
@@ -104,6 +106,7 @@ describe('completing setup', () => {
     expect(res.status).toBe(201);
     expect(res.body.preview.annual).toEqual({ carriedIn: 2, credited: 15.75, used: 5, balance: 12.75 });
     expect(res.body.preview.optional).toEqual({ quota: 2, used: 1, remaining: 1 });
+    expect(res.body.preview.birthday).toEqual({ quota: 0.5, used: 0.5, remaining: 0 });
 
     const shape = async (userId: string) => {
       const rows = await prisma.leaveLedgerEntry.findMany({ where: { userId }, orderBy: [{ effectiveDate: 'asc' }, { type: 'asc' }] });
@@ -239,7 +242,7 @@ describe('what the plan calculates', () => {
   });
 
   it('a person with nothing carried or used gets a clean start', () => {
-    const p = plan({ carriedForward: 0, annualUsedSoFar: 0, optionalUsedSoFar: 0 });
+    const p = plan({ carriedForward: 0, annualUsedSoFar: 0, optionalUsedSoFar: 0, birthdayTaken: false });
     expect(p.ledger.map((r) => r.type)).not.toContain('ADJUSTMENT');
     expect(p.preview.optional).toEqual({ quota: 2, used: 0, remaining: 2 });
   });

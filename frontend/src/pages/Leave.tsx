@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Copy, Palmtree, Plus, Star } from 'lucide-react';
+import { Cake, Copy, Palmtree, Plus, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Banner, Card, CardTitle, Chip, ErrorState, Field, Skeleton, inputClass } from '@/components/ui/primitives';
 import { cn } from '@/lib/cn';
@@ -11,6 +11,7 @@ const TYPES: Array<{ value: LeaveInput['type']; label: string }> = [
   { value: 'SICK_LEAVE', label: 'Sick leave' },
   { value: 'BEREAVEMENT_LEAVE', label: 'Bereavement' },
   { value: 'OPTIONAL_HOLIDAY', label: 'Optional holiday' },
+  { value: 'BIRTHDAY_LEAVE', label: 'Birthday half-day' },
 ];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -31,12 +32,14 @@ export default function Leave() {
   const [copied, setCopied] = useState(false);
   const [relation, setRelation] = useState('');
 
+  const birthday = type === 'BIRTHDAY_LEAVE';
   const halfAllowed = type === 'CASUAL_LEAVE' || type === 'SICK_LEAVE';
   const input: LeaveInput = {
     type,
     startDate: start,
-    endDate: end < start ? start : end,
-    half: halfAllowed && half && start === end,
+    // A birthday half-day is one date, always half a day.
+    endDate: birthday ? start : end < start ? start : end,
+    half: birthday || (halfAllowed && half && start === end),
     managerInformed: informed,
     bereavementEventId: type === 'BEREAVEMENT_LEAVE' ? eventId || null : null,
   };
@@ -113,6 +116,16 @@ export default function Leave() {
         </Card>
 
         <Card>
+          <div className="flex items-center gap-2 text-sm font-medium text-ink-soft">
+            <Cake size={16} className="text-leave" aria-hidden /> Birthday half-day
+          </div>
+          <p className="num mt-1 text-2xl font-semibold">
+            {d.birthday.remaining} of {d.birthday.quota} remaining
+          </p>
+          <p className="mt-1 text-xs text-ink-soft">Half a day each year, separate from annual leave. It does not carry over.</p>
+        </Card>
+
+        <Card>
           <div className="text-sm font-medium text-ink-soft">Bereavement leave</div>
           <p className="mt-1 text-xs text-ink-soft">Up to {d.bereavement.maxDaysPerEvent} days per event, separate from annual leave.</p>
           {d.bereavement.events.length === 0 ? (
@@ -164,11 +177,17 @@ export default function Leave() {
             <input id="leave-from" type="date" className={inputClass} value={start} onChange={(e) => { setStart(e.target.value); if (end < e.target.value) setEnd(e.target.value); }} />
           </Field>
           <Field label="To" htmlFor="leave-to">
-            <input id="leave-to" type="date" className={inputClass} value={end} min={start} onChange={(e) => setEnd(e.target.value)} />
+            <input id="leave-to" type="date" className={inputClass} value={birthday ? start : end} min={start} disabled={birthday} onChange={(e) => setEnd(e.target.value)} />
           </Field>
         </div>
 
-        <label className={cn('mt-3 flex items-center gap-2 text-sm', (!halfAllowed || start !== end) && 'opacity-50')}>
+        {birthday && (
+          <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm text-ink-soft">
+            A birthday half-day is one date and always half a day (you still work the other half). It has its own yearly allowance and does not use your annual leave.
+          </p>
+        )}
+
+        <label className={cn('mt-3 flex items-center gap-2 text-sm', (!halfAllowed || start !== end) && 'opacity-50', birthday && 'hidden')}>
           <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={half && halfAllowed && start === end} disabled={!halfAllowed || start !== end} onChange={(e) => setHalf(e.target.checked)} />
           Half day <span className="text-xs text-ink-soft">(single date, casual or sick)</span>
         </label>

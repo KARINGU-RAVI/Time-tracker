@@ -36,6 +36,10 @@ export const setupSchema = z.object({
     /** Annual leave already taken this year, before tracking starts. */
     annualUsedSoFar: days(60),
     optionalUsedSoFar: z.number().int().min(0).max(20),
+    /** Half-day allowance for a birthday, separate from annual leave (default half a day a year). */
+    birthdayQuota: days(1).default(0.5),
+    /** Whether the birthday half-day was already taken this year, before tracking starts. */
+    birthdayTaken: z.boolean().default(false),
     /** First month (1-12) this year that earns monthly leave, for someone who joined mid-year. */
     creditsFromMonth: z.number().int().min(1).max(12).default(1),
   }),
@@ -50,7 +54,7 @@ export const setupSchema = z.object({
 export type SetupInput = z.infer<typeof setupSchema>;
 
 export interface LedgerRow {
-  pool: 'ANNUAL' | 'OPTIONAL';
+  pool: 'ANNUAL' | 'OPTIONAL' | 'BIRTHDAY';
   type: 'OPENING' | 'ACCRUAL' | 'GRANT' | 'ADJUSTMENT';
   days: number;
   effectiveDate: string;
@@ -60,12 +64,13 @@ export interface LedgerRow {
 export interface SetupPlan {
   year: number;
   workRule: { dailyRequiredMinutes: number; weeklyRequiredMinutes: number; halfDayRequiredMinutes: number; workingDays: number[]; weekStartsOn: number; effectiveFrom: string };
-  policy: { annualEntitlement: number; accrualPerMonth: number; carryForwardCap: number; optionalQuota: number; bereavementDaysPerEvent: number; effectiveFrom: string };
+  policy: { annualEntitlement: number; accrualPerMonth: number; carryForwardCap: number; optionalQuota: number; birthdayQuota: number; bereavementDaysPerEvent: number; effectiveFrom: string };
   ledger: LedgerRow[];
   holidays: Array<{ date: string; name: string; type: 'COMPANY' | 'OPTIONAL' }>;
   preview: {
     annual: { carriedIn: number; credited: number; used: number; balance: number };
     optional: { quota: number; used: number; remaining: number };
+    birthday: { quota: number; used: number; remaining: number };
     trackingStartDate: string;
   };
 }
@@ -94,6 +99,9 @@ export function planSetup(input: SetupInput, today: string, companyHolidays: Set
   }
   if (leave.carriedForward > leave.carryForwardCap) {
     throw bad('CARRY_TOO_HIGH', `At most ${leave.carryForwardCap} days can be carried forward, so this cannot be more.`);
+  }
+  if (leave.birthdayTaken && leave.birthdayQuota <= 0) {
+    throw bad('BIRTHDAY_NOT_AVAILABLE', 'There is no birthday half-day allowance to have used.');
   }
   if (leave.optionalUsedSoFar > leave.optionalQuota) {
     throw bad('OPTIONAL_TOO_HIGH', `You cannot have used more than the ${leave.optionalQuota} optional leave(s) available.`);
@@ -129,6 +137,10 @@ export function planSetup(input: SetupInput, today: string, companyHolidays: Set
   if (leave.optionalQuota > 0) ledger.push({ pool: 'OPTIONAL', type: 'GRANT', days: leave.optionalQuota, effectiveDate: jan1, note: `Optional leave quota for ${year}` });
   if (leave.optionalUsedSoFar > 0) ledger.push({ pool: 'OPTIONAL', type: 'ADJUSTMENT', days: -leave.optionalUsedSoFar, effectiveDate: adjustmentDate, note: 'Optional leave used before tracking began' });
 
+  const birthdayUsed = leave.birthdayTaken ? leave.birthdayQuota : 0;
+  if (leave.birthdayQuota > 0) ledger.push({ pool: 'BIRTHDAY', type: 'GRANT', days: leave.birthdayQuota, effectiveDate: jan1, note: `Birthday half-day allowance for ${year}` });
+  if (birthdayUsed > 0) ledger.push({ pool: 'BIRTHDAY', type: 'ADJUSTMENT', days: -birthdayUsed, effectiveDate: adjustmentDate, note: 'Birthday half-day taken before tracking began' });
+
   // Holidays
   let holidays: SetupPlan['holidays'] = [];
   if (input.holidays.source === 'list') holidays = input.holidays.list ?? [];
@@ -156,6 +168,7 @@ export function planSetup(input: SetupInput, today: string, companyHolidays: Set
       accrualPerMonth: leave.accrualPerMonth,
       carryForwardCap: leave.carryForwardCap,
       optionalQuota: leave.optionalQuota,
+      birthdayQuota: leave.birthdayQuota,
       bereavementDaysPerEvent: leave.bereavementDaysPerEvent,
       effectiveFrom: jan1,
     },
@@ -169,6 +182,7 @@ export function planSetup(input: SetupInput, today: string, companyHolidays: Set
         balance: round2(leave.carriedForward + creditedByToday - leave.annualUsedSoFar),
       },
       optional: { quota: leave.optionalQuota, used: leave.optionalUsedSoFar, remaining: leave.optionalQuota - leave.optionalUsedSoFar },
+      birthday: { quota: leave.birthdayQuota, used: birthdayUsed, remaining: round2(leave.birthdayQuota - birthdayUsed) },
       trackingStartDate: start,
     },
   };
@@ -185,6 +199,8 @@ export const SETUP_DEFAULTS = {
     carriedForward: 0,
     annualUsedSoFar: 0,
     optionalUsedSoFar: 0,
+    birthdayQuota: 0.5,
+    birthdayTaken: false,
     creditsFromMonth: 1,
   },
 };

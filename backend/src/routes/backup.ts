@@ -30,6 +30,7 @@ const STATUS_LABEL: Record<string, string> = {
   SICK_LEAVE: 'Sick leave',
   BEREAVEMENT_LEAVE: 'Bereavement leave',
   OPTIONAL_HOLIDAY: 'Optional holiday',
+  BIRTHDAY_LEAVE: 'Birthday half-day',
 };
 
 function statusLabel(day: DayResult, recordStatus: string | undefined, half: boolean): string {

@@ -18,7 +18,7 @@ import { loadUserConfig } from '../services/engineData';
 import { ensureLedger, leaveSummary, loadLeaveUsage, projectedLedger } from '../services/leave';
 import type { AppDeps } from '../app';
 
-const LEAVE_TYPES = ['CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY'] as const;
+const LEAVE_TYPES = ['CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY', 'BIRTHDAY_LEAVE'] as const;
 
 const leaveBody = z
   .object({
@@ -31,12 +31,13 @@ const leaveBody = z
   })
   .refine((b) => b.endDate >= b.startDate, { message: 'The end date must not be before the start date.' })
   .refine((b) => !b.half || b.startDate === b.endDate, { message: 'A half day applies to a single date.' })
-  .refine((b) => !b.half || b.type === 'CASUAL_LEAVE' || b.type === 'SICK_LEAVE', {
-    message: 'Only casual or sick leave can be a half day.',
-  });
+  .refine((b) => !b.half || b.type === 'CASUAL_LEAVE' || b.type === 'SICK_LEAVE' || b.type === 'BIRTHDAY_LEAVE', {
+    message: 'Only casual, sick or birthday leave can be a half day.',
+  })
+  .refine((b) => b.type !== 'BIRTHDAY_LEAVE' || b.startDate === b.endDate, { message: 'A birthday half-day is a single date.' });
 
 const poolOf = (type: (typeof LEAVE_TYPES)[number]): LeavePool =>
-  type === 'OPTIONAL_HOLIDAY' ? 'OPTIONAL' : type === 'BEREAVEMENT_LEAVE' ? 'BEREAVEMENT' : 'ANNUAL';
+  type === 'OPTIONAL_HOLIDAY' ? 'OPTIONAL' : type === 'BEREAVEMENT_LEAVE' ? 'BEREAVEMENT' : type === 'BIRTHDAY_LEAVE' ? 'BIRTHDAY' : 'ANNUAL';
 
 const pretty = (date: string): string => {
   const d = new Date(`${date}T00:00:00Z`);
@@ -61,7 +62,7 @@ export function leaveRoutes({ prisma, clock }: AppDeps): Router {
     }
 
     const status: AttendanceStatus = b.type;
-    const dayFraction: 1 | 0.5 = b.half ? 0.5 : 1;
+    const dayFraction: 1 | 0.5 = b.half || b.type === 'BIRTHDAY_LEAVE' ? 0.5 : 1;
     const counted: string[] = [];
     const skipped: Array<{ date: string; reason: string }> = [];
     for (const date of eachDate(b.startDate, b.endDate)) {
@@ -85,7 +86,7 @@ export function leaveRoutes({ prisma, clock }: AppDeps): Router {
     const { paid, lop } = previewLeave(ledger, existing, newUsage, pool);
 
     const totalDays = counted.length * dayFraction;
-    const label = b.type === 'SICK_LEAVE' ? 'sick leave' : b.type === 'CASUAL_LEAVE' ? 'casual leave' : b.type === 'OPTIONAL_HOLIDAY' ? 'an optional holiday' : 'bereavement leave';
+    const label = b.type === 'SICK_LEAVE' ? 'sick leave' : b.type === 'CASUAL_LEAVE' ? 'casual leave' : b.type === 'OPTIONAL_HOLIDAY' ? 'an optional holiday' : b.type === 'BIRTHDAY_LEAVE' ? 'my birthday half-day' : 'bereavement leave';
     const dates =
       counted.length === 0
         ? ''
@@ -107,11 +108,11 @@ export function leaveRoutes({ prisma, clock }: AppDeps): Router {
           ? 'No working days are selected (weekends and holidays are skipped).'
           : `${formatLeaveDays(totalDays)} working day(s) selected (weekends and holidays are skipped).`,
       warning:
-        lop > 0 && pool === 'ANNUAL'
+        lop > 0 && (pool === 'ANNUAL' || pool === 'BIRTHDAY')
           ? `${formatLeaveDays(lop)} day(s) will be unpaid (salary cut).`
           : null,
       managerMessage:
-        lop > 0 && pool === 'ANNUAL'
+        lop > 0 && (pool === 'ANNUAL' || pool === 'BIRTHDAY')
           ? `Hi, I would like to apply for ${label} on ${dates}. My leave balance covers ${formatLeaveDays(paid)} day(s), so ${formatLeaveDays(lop)} day(s) would be unpaid. Please let me know if this is fine. Thank you.`
           : null,
     };
@@ -198,7 +199,7 @@ export function leaveRoutes({ prisma, clock }: AppDeps): Router {
         for (const date of p.counted) {
           const data = {
             status: b.type,
-            dayFraction: b.half ? 0.5 : 1,
+            dayFraction: p.dayFraction,
             managerInformed: b.managerInformed,
             bereavementEventId: b.type === 'BEREAVEMENT_LEAVE' ? (b.bereavementEventId ?? null) : null,
           };

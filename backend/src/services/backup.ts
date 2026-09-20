@@ -54,6 +54,8 @@ const policySchema = z
     accrualPerMonth: num(0, 366),
     carryForwardCap: num(0, 366),
     optionalQuota: num(0, 366),
+    // Backups made before the birthday half-day existed have no value: they get the default of half a day.
+    birthdayQuota: num(0, 366).default(0.5),
     bereavementDaysPerEvent: z.number().int().min(0).max(60),
     effectiveFrom: dateStr,
     effectiveTo: dateStr.nullable(),
@@ -62,7 +64,7 @@ const policySchema = z
 
 const ledgerSchema = z
   .object({
-    pool: z.enum(['ANNUAL', 'OPTIONAL', 'BEREAVEMENT']),
+    pool: z.enum(['ANNUAL', 'OPTIONAL', 'BEREAVEMENT', 'BIRTHDAY']),
     type: z.enum(['OPENING', 'ACCRUAL', 'GRANT', 'LAPSE', 'ADJUSTMENT']),
     days: num(-366, 366),
     effectiveDate: dateStr,
@@ -83,7 +85,7 @@ const eventSchema = z
 const attendanceSchema = z
   .object({
     date: dateStr,
-    status: z.enum(['WORKING', 'WFH', 'CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY']),
+    status: z.enum(['WORKING', 'WFH', 'CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY', 'BIRTHDAY_LEAVE']),
     dayFraction: z.union([z.literal(1), z.literal(0.5)]),
     notes: z.string().max(2000).nullable(),
     managerInformed: z.boolean(),
@@ -183,6 +185,7 @@ export async function exportBackup(db: Db, userId: string, now: number): Promise
       accrualPerMonth: Number(p.accrualPerMonth),
       carryForwardCap: Number(p.carryForwardCap),
       optionalQuota: Number(p.optionalQuota),
+      birthdayQuota: Number(p.birthdayQuota),
       bereavementDaysPerEvent: p.bereavementDaysPerEvent,
       effectiveFrom: fromDbDate(p.effectiveFrom),
       effectiveTo: p.effectiveTo ? fromDbDate(p.effectiveTo) : null,
@@ -259,8 +262,11 @@ export function parseBackup(raw: unknown): Backup {
     if (a.bereavementEventId !== null && !eventIds.has(a.bereavementEventId)) {
       throw invalid(`${prettyDate(a.date)}: it refers to a bereavement event that is not in the file.`);
     }
-    if (a.dayFraction === 0.5 && a.status !== 'CASUAL_LEAVE' && a.status !== 'SICK_LEAVE') {
-      throw invalid(`${prettyDate(a.date)}: only casual or sick leave can be a half day.`);
+    if (a.dayFraction === 0.5 && a.status !== 'CASUAL_LEAVE' && a.status !== 'SICK_LEAVE' && a.status !== 'BIRTHDAY_LEAVE') {
+      throw invalid(`${prettyDate(a.date)}: only casual, sick or birthday leave can be a half day.`);
+    }
+    if (a.status === 'BIRTHDAY_LEAVE' && a.dayFraction !== 0.5) {
+      throw invalid(`${prettyDate(a.date)}: a birthday leave is always a half day.`);
     }
     const issues = validateSessions(
       a.sessions.map((s) => ({ inTime: Date.parse(s.inTime), outTime: s.outTime ? Date.parse(s.outTime) : null })),

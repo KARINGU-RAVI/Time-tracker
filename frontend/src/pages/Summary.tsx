@@ -75,9 +75,9 @@ export default function Summary() {
             <StatCard label="Balance" value={formatDuration(p.balanceMinutes, { signed: true })} tone={p.balanceMinutes < 0 ? 'warn' : 'ok'} />
             <StatCard label={mode === 'week' ? 'Weekly overtime' : 'Overtime'} value={formatDuration(p.periodOvertimeMinutes)} />
           </div>
-          {(p.counts.leaveDays > 0 || p.counts.holidays > 0) && mode === 'week' && (
+          {(p.counts.leaveDays > 0 || p.counts.holidays > 0 || p.counts.birthdayDays > 0) && mode === 'week' && (
             <p className="flex items-center gap-2 text-sm text-ink-soft">
-              <Info size={16} aria-hidden /> Required is {formatDuration(p.requiredMinutes)} because of {p.counts.leaveDays + p.counts.holidays} leave/holiday day(s).
+              <Info size={16} aria-hidden /> Required is {formatDuration(p.requiredMinutes)} because of {p.counts.leaveDays + p.counts.holidays + p.counts.birthdayDays} leave/holiday day(s).
             </p>
           )}
           {mode === 'month' && (p.lopDays ?? 0) > 0 && (
@@ -130,6 +130,7 @@ export default function Summary() {
           <div className="flex flex-wrap gap-2">
             <Chip>Working {p.counts.working}</Chip>
             <Chip>Leave {p.counts.leaveDays}</Chip>
+            {p.counts.birthdayDays > 0 && <Chip>Birthday {p.counts.birthdayDays}</Chip>}
             <Chip>WFH {p.counts.wfh}</Chip>
             <Chip>Holiday {p.counts.holidays}</Chip>
             <Chip>Weekly off {p.counts.weeklyOffs}</Chip>

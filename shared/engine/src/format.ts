@@ -18,3 +18,12 @@ export function formatDuration(minutes: number, options: { signed?: boolean } = 
 export function formatLeaveDays(days: number): string {
   return (Math.round(days * 100) / 100).toFixed(2);
 }
+
+/** A running-clock style duration, 'H:MM:SS' (for example 6:55:07). Negative values show as 0:00:00. */
+export function formatClockDuration(totalSeconds: number): string {
+  const t = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const sec = t % 60;
+  return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}

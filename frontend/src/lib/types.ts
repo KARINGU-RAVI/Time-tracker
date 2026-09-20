@@ -7,6 +7,7 @@ export type DayKind =
   | 'FULL_LEAVE'
   | 'OPTIONAL_HOLIDAY'
   | 'BEREAVEMENT'
+  | 'BIRTHDAY_HALF_DAY'
   | 'HOLIDAY'
   | 'WEEKLY_OFF'
   | 'BEFORE_TRACKING';
@@ -17,7 +18,8 @@ export type AttendanceStatus =
   | 'CASUAL_LEAVE'
   | 'SICK_LEAVE'
   | 'BEREAVEMENT_LEAVE'
-  | 'OPTIONAL_HOLIDAY';
+  | 'OPTIONAL_HOLIDAY'
+  | 'BIRTHDAY_LEAVE';
 
 export interface Session {
   id: string;
@@ -90,6 +92,7 @@ export interface Period {
     leaveDays: number;
     optionalHolidays: number;
     bereavementDays: number;
+    birthdayDays: number;
     holidays: number;
     weeklyOffs: number;
   };
@@ -124,6 +127,8 @@ export interface LeaveSummary {
     nextCredit: { date: string; days: number } | null;
   };
   optional: { quota: number; used: number; remaining: number };
+  /** Birthday half-day: separate from annual leave, one allowance a year. */
+  birthday: { quota: number; used: number; remaining: number };
   lopByMonth: Record<string, number>;
   ledger: Array<{ date: string; kind: string; note: string | null; days: number; running: number }>;
   yearEnd: { balance: number; carryForward: number; willLapse: number } | null;

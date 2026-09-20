@@ -13,11 +13,12 @@ export type AttendanceStatus =
   | 'CASUAL_LEAVE'
   | 'SICK_LEAVE'
   | 'BEREAVEMENT_LEAVE'
-  | 'OPTIONAL_HOLIDAY';
+  | 'OPTIONAL_HOLIDAY'
+  | 'BIRTHDAY_LEAVE';
 
 export type HolidayType = 'COMPANY' | 'OPTIONAL';
 
-export type LeavePool = 'ANNUAL' | 'OPTIONAL' | 'BEREAVEMENT';
+export type LeavePool = 'ANNUAL' | 'OPTIONAL' | 'BEREAVEMENT' | 'BIRTHDAY';
 
 export interface Session {
   /** Epoch ms of IN. */
@@ -70,6 +71,7 @@ export type DayKind =
   | 'FULL_LEAVE'
   | 'OPTIONAL_HOLIDAY'
   | 'BEREAVEMENT'
+  | 'BIRTHDAY_HALF_DAY'
   | 'HOLIDAY'
   | 'WEEKLY_OFF'
   | 'BEFORE_TRACKING';

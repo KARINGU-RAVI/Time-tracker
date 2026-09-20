@@ -69,7 +69,7 @@ export const makePeriod = (over: Partial<Period> = {}): Period => ({
   periodOvertimeMinutes: 0,
   dailyOvertimeMinutes: 0,
   offDayWorkedMinutes: 0,
-  counts: { working: 4, wfh: 0, leaveDays: 1, optionalHolidays: 0, bereavementDays: 0, holidays: 0, weeklyOffs: 2 },
+  counts: { working: 4, wfh: 0, leaveDays: 1, optionalHolidays: 0, bereavementDays: 0, birthdayDays: 0, holidays: 0, weeklyOffs: 2 },
   incompleteDates: [],
   unrecordedDates: [],
   days: [],
@@ -81,6 +81,7 @@ export const makeLeave = (over: Partial<LeaveSummary> = {}): LeaveSummary => ({
   year: 2026,
   annual: { balance: 12.75, carriedIn: 2, accruedThisYear: 15.75, usedThisYear: 5, nextCredit: { date: '2026-10-01', days: 1.75 } },
   optional: { quota: 2, used: 1, remaining: 1 },
+  birthday: { quota: 0.5, used: 0.5, remaining: 0 },
   lopByMonth: {},
   ledger: [
     { date: '2026-01-01', kind: 'OPENING', note: 'Carried forward from 2025', days: 2, running: 2 },

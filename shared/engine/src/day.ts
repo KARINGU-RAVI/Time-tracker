@@ -22,7 +22,8 @@ function isLeaveStatus(status: AttendanceStatus): boolean {
     status === 'CASUAL_LEAVE' ||
     status === 'SICK_LEAVE' ||
     status === 'BEREAVEMENT_LEAVE' ||
-    status === 'OPTIONAL_HOLIDAY'
+    status === 'OPTIONAL_HOLIDAY' ||
+    status === 'BIRTHDAY_LEAVE'
   );
 }
 
@@ -90,7 +91,7 @@ export function calculateDailyAttendance(
     if (record && isLeaveStatus(record.status)) warnings.push('LEAVE_ON_NON_WORKING_DAY');
   } else {
     let fraction: 1 | 0.5 = record?.dayFraction ?? 1;
-    const halfAllowed = status === 'CASUAL_LEAVE' || status === 'SICK_LEAVE';
+    const halfAllowed = status === 'CASUAL_LEAVE' || status === 'SICK_LEAVE' || status === 'BIRTHDAY_LEAVE';
     if (fraction === 0.5 && !halfAllowed) {
       warnings.push('INVALID_FRACTION');
       fraction = 1;
@@ -121,6 +122,12 @@ export function calculateDailyAttendance(
         if (!ctx.holidays.some((h) => h.date === date && h.type === 'OPTIONAL')) {
           warnings.push('OPTIONAL_HOLIDAY_NOT_LISTED');
         }
+        break;
+      case 'BIRTHDAY_LEAVE':
+        // Always half a day, separate from the annual leave: the other half is worked like any half-day leave.
+        kind = 'BIRTHDAY_HALF_DAY';
+        required = rule.halfDayRequiredMinutes;
+        leaveUse = { pool: 'BIRTHDAY', days: 0.5 };
         break;
       case 'BEREAVEMENT_LEAVE':
         kind = 'BEREAVEMENT';

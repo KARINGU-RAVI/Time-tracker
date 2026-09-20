@@ -17,7 +17,7 @@ import { loadRecords, type UserConfig } from './engineData';
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
-const LEAVE_STATUSES = ['CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY'] as const;
+const LEAVE_STATUSES = ['CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY', 'BIRTHDAY_LEAVE'] as const;
 
 export interface StoredLedgerEntry extends LedgerEntry {
   id?: string;
@@ -122,8 +122,17 @@ export async function ensureLedger(db: Db, userId: string, cfg: UserConfig, asOf
   const perMonth = Number(policy.accrualPerMonth);
   const cap = Number(policy.carryForwardCap);
   const quota = Number(policy.optionalQuota);
+  const birthdayQuota = Number(policy.birthdayQuota);
   const firstYear = Math.min(...entries.map((e) => Number(e.effectiveDate.slice(0, 4))));
   const currentYear = Number(asOf.slice(0, 4));
+
+  // An account that has never had a birthday allowance (made before the feature, or restored from an older backup) gets one.
+  if (birthdayQuota > 0 && !entries.some((e) => e.pool === 'BIRTHDAY')) {
+    await savePolicyEntries(db, userId, [
+      { pool: 'BIRTHDAY', type: 'GRANT', days: birthdayQuota, effectiveDate: `${firstYear}-01-01`, note: `Birthday half-day allowance for ${firstYear}` },
+    ]);
+    entries = await loadLedger(db, userId);
+  }
 
   for (let y = firstYear; y <= currentYear; y++) {
     const through = y < currentYear ? `${y}-12-31` : asOf;
@@ -135,6 +144,7 @@ export async function ensureLedger(db: Db, userId: string, cfg: UserConfig, asOf
       const yearEnd = `${y}-12-31`;
       const annual = leaveBalanceAt(entries, usage, 'ANNUAL', yearEnd);
       const optional = leaveBalanceAt(entries, usage, 'OPTIONAL', yearEnd);
+      const birthday = leaveBalanceAt(entries, usage, 'BIRTHDAY', yearEnd);
       const lapse = yearEndLapse(annual, cap);
       await savePolicyEntries(db, userId, [
         ...(lapse > 0
@@ -145,6 +155,12 @@ export async function ensureLedger(db: Db, userId: string, cfg: UserConfig, asOf
           : []),
         ...(quota > 0
           ? [{ pool: 'OPTIONAL' as const, type: 'GRANT' as const, days: quota, effectiveDate: `${y + 1}-01-01`, note: `Optional leave quota for ${y + 1}` }]
+          : []),
+        ...(birthday > 0
+          ? [{ pool: 'BIRTHDAY' as const, type: 'LAPSE' as const, days: -birthday, effectiveDate: yearEnd, note: 'Unused birthday half-day lapses' }]
+          : []),
+        ...(birthdayQuota > 0
+          ? [{ pool: 'BIRTHDAY' as const, type: 'GRANT' as const, days: birthdayQuota, effectiveDate: `${y + 1}-01-01`, note: `Birthday half-day allowance for ${y + 1}` }]
           : []),
       ]);
       entries = await loadLedger(db, userId);
@@ -181,6 +197,8 @@ export interface LeaveSummary {
     nextCredit: { date: string; days: number } | null;
   };
   optional: { quota: number; used: number; remaining: number };
+  /** Birthday half-day: separate from annual leave, one allowance per year. */
+  birthday: { quota: number; used: number; remaining: number };
   lopByMonth: Record<string, number>;
   allocations: LeaveAllocation[];
   ledger: Array<{ date: string; kind: string; note: string | null; days: number; running: number }>;
@@ -200,7 +218,8 @@ export async function leaveSummary(db: Db, userId: string, cfg: UserConfig, asOf
 
   const annualAlloc = allocateLeave(ledger, usage, 'ANNUAL');
   const optionalAlloc = allocateLeave(ledger, usage, 'OPTIONAL');
-  const allocations = [...annualAlloc, ...optionalAlloc, ...allocateLeave(ledger, usage, 'BEREAVEMENT')];
+  const birthdayAlloc = allocateLeave(ledger, usage, 'BIRTHDAY');
+  const allocations = [...annualAlloc, ...optionalAlloc, ...birthdayAlloc, ...allocateLeave(ledger, usage, 'BEREAVEMENT')];
 
   const inYear = (d: string) => d.startsWith(String(year));
   const balance = leaveBalanceAt(stored, usage, 'ANNUAL', asOf);
@@ -230,6 +249,12 @@ export async function leaveSummary(db: Db, userId: string, cfg: UserConfig, asOf
   const optionalUsed = paidThisYear(optionalAlloc) + adjustments('OPTIONAL');
   const optionalRemaining = leaveBalanceAt(stored, usage, 'OPTIONAL', asOf);
 
+  const birthdayQuota = stored
+    .filter((e) => e.pool === 'BIRTHDAY' && e.type === 'GRANT' && inYear(e.effectiveDate))
+    .reduce((s, e) => s + e.days, 0);
+  const birthdayUsed = paidThisYear(birthdayAlloc) + adjustments('BIRTHDAY');
+  const birthdayRemaining = leaveBalanceAt(stored, usage, 'BIRTHDAY', asOf);
+
   const cap = policy ? Number(policy.carryForwardCap) : 0;
   const month = Number(asOf.slice(5, 7));
 
@@ -257,7 +282,9 @@ export async function leaveSummary(db: Db, userId: string, cfg: UserConfig, asOf
       nextCredit: policy ? { date: nextMonthDate, days: Number(policy.accrualPerMonth) } : null,
     },
     optional: { quota, used: round2(optionalUsed), remaining: optionalRemaining },
-    lopByMonth: lopByMonth(annualAlloc),
+    birthday: { quota: round2(birthdayQuota), used: round2(birthdayUsed), remaining: birthdayRemaining },
+    // A second birthday half-day in a year is unpaid, so it counts towards the month's salary cut like annual leave beyond balance.
+    lopByMonth: lopByMonth([...annualAlloc, ...birthdayAlloc]),
     allocations,
     ledger: ledgerRows,
     yearEnd: month >= 11 ? { balance, carryForward: Math.min(balance, cap), willLapse: yearEndLapse(balance, cap) } : null,

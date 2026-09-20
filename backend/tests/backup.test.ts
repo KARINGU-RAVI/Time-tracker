@@ -270,7 +270,7 @@ describe('refusing bad files (nothing is changed)', () => {
       ['IN on the wrong date', (d) => { dayOf(d).sessions[0]!.inTime = '2026-09-16T03:00:00.000Z'; }, /must fall on the selected date|overlaps/],
       ['bereavement without an event', (d) => { d.attendance.find((a) => a.status === 'BEREAVEMENT_LEAVE')!.bereavementEventId = null; }, /bereavement days must be linked/],
       ['bereavement with a missing event', (d) => { d.attendance.find((a) => a.status === 'BEREAVEMENT_LEAVE')!.bereavementEventId = 'missing'; }, /not in the file/],
-      ['half day on WFH', (d) => { dayOf(d, '2026-09-10').dayFraction = 0.5; }, /only casual or sick leave can be a half day/],
+      ['half day on WFH', (d) => { dayOf(d, '2026-09-10').dayFraction = 0.5; }, /only casual, sick or birthday leave can be a half day/],
       ['overlapping rules', (d) => { d.workRules[0]!.effectiveTo = null; }, /cover the same dates/],
       ['half day longer than a day', (d) => { d.workRules[0]!.halfDayRequiredMinutes = 9999; }, /damaged or incomplete|half day longer/],
       ['leave year out of range', (d) => { d.ledger[0]!.leaveYear = 1999; }, /damaged or incomplete/],

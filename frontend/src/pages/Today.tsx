@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, LogIn, LogOut, Palmtree, Plus } from 'lucide-react';
-import { formatDuration, istClock } from '@oht/engine';
+import { formatClockDuration, formatDuration, istClock, istClockSeconds } from '@oht/engine';
 import { AddSessionDialog } from '@/components/AddSessionDialog';
 import { ProgressRing } from '@/components/ProgressRing';
 import { SessionList } from '@/components/SessionList';
@@ -12,6 +12,7 @@ import { ApiError } from '@/lib/api';
 import { dayLabel, prettyDate } from '@/lib/dates';
 import { useCheckIn, useCheckOut, useDashboard } from '@/lib/queries';
 import { dayMessage, dayStatus, toneSolid, type StatusInfo } from '@/lib/status';
+import { liveFigures, serverClock } from '@/lib/liveClock';
 import { useNow } from '@/lib/useNow';
 import type { Dashboard } from '@/lib/types';
 
@@ -28,7 +29,8 @@ function TodaySkeleton() {
 
 export default function Today() {
   const q = useDashboard();
-  const tick = useNow(15_000);
+  // Tick every second while checked in (so the seconds run), and rarely otherwise.
+  const tick = useNow(q.data?.today.isInside ? 1000 : 15_000);
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
   const [addOpen, setAddOpen] = useState(false);
@@ -65,11 +67,19 @@ export default function Today() {
     );
   }
 
-  // Keep counters live between refreshes, using one clock so a wrong device clock cannot skew them.
-  const sinceFetch = Math.max(0, tick - q.dataUpdatedAt);
-  const serverNow = Date.parse(data.now) + sinceFetch;
-  const extraMinutes = day.isInside ? Math.floor(sinceFetch / 60_000) : 0;
-  const worked = day.workedMinutes + extraMinutes;
+  // Every live figure comes from the SERVER's clock (its answer plus the time elapsed since), so a phone and a laptop
+  // show the same second even if one device clock is wrong or in another time zone.
+  const serverNow = serverClock(data.now, q.dataUpdatedAt, tick);
+  const openSession = day.sessions.find((s) => s.outTime === null);
+  const figures = liveFigures({
+    workedMinutes: day.workedMinutes,
+    requiredMinutes: day.requiredMinutes,
+    isInside: day.isInside,
+    openInMs: openSession ? Date.parse(openSession.inTime) : null,
+    fetchNowMs: Date.parse(data.now),
+    nowMs: serverNow,
+  });
+  const worked = Math.floor(figures.workedSeconds / 60);
   const required = day.requiredMinutes;
   const remaining = Math.max(0, required - worked);
   const overtime = required > 0 ? Math.max(0, worked - required) : 0;
@@ -90,7 +100,7 @@ export default function Today() {
   const actionError = checkIn.error ?? checkOut.error;
   const staleOpen = checkOut.error?.code === 'OPEN_SESSION_FROM_PAST' ? (checkOut.error.details as { date: string } | undefined) : undefined;
   const inClock = day.sessions.find((s) => s.outTime === null)?.inClock;
-  const nowClock = istClock(serverNow);
+  const nowClock = istClockSeconds(serverNow);
 
   return (
     <div className="flex flex-col gap-4">
@@ -155,9 +165,9 @@ export default function Today() {
           <Card className="p-5">
             {required > 0 ? (
               <>
-                <ProgressRing fraction={worked / required}>
-                  <span className="num text-5xl font-semibold" aria-label="Worked today">
-                    {formatDuration(worked)}
+                <ProgressRing fraction={figures.workedSeconds / (required * 60)}>
+                  <span className="num text-5xl font-semibold" role="timer" aria-live="off" aria-label="Worked today">
+                    {formatClockDuration(figures.workedSeconds)}
                   </span>
                   <span className="text-sm text-ink-soft">worked today</span>
                 </ProgressRing>
@@ -168,7 +178,9 @@ export default function Today() {
                   </div>
                   <div>
                     <div className="text-xs text-ink-soft">{overtime > 0 ? 'Overtime' : 'Remaining'}</div>
-                    <div className="num text-xl font-semibold">{formatDuration(overtime > 0 ? overtime : remaining)}</div>
+                    <div className="num text-xl font-semibold" role="timer" aria-live="off" aria-label={overtime > 0 ? 'Overtime' : 'Time remaining'}>
+                      {formatClockDuration(overtime > 0 ? figures.overtimeSeconds : figures.remainingSeconds)}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-ink-soft">Expected OUT</div>
@@ -177,6 +189,12 @@ export default function Today() {
                     </div>
                   </div>
                 </div>
+                {day.isInside && openSession && (
+                  <p className="mt-4 text-center text-sm text-ink-soft">
+                    This session <span className="num font-semibold text-ink" role="timer" aria-live="off" aria-label="This session">{formatClockDuration(figures.sessionSeconds)}</span>
+                    {' '}· since <span className="num">{openSession.inClock}</span>
+                  </p>
+                )}
                 <p className="mt-4 rounded-lg bg-muted px-3 py-2 text-center text-sm" aria-live="polite">
                   {dayMessage(required, worked)}
                 </p>
@@ -225,11 +243,11 @@ export default function Today() {
               Worked <span className="font-semibold">{formatDuration(data.week.workedMinutes)}</span> of{' '}
               <span className="font-semibold">{formatDuration(data.week.requiredMinutes)}</span>
             </p>
-            {(data.week.counts.leaveDays > 0 || data.week.counts.holidays > 0) && (
+            {(data.week.counts.leaveDays > 0 || data.week.counts.holidays > 0 || data.week.counts.birthdayDays > 0) && (
               <p className="mt-0.5 text-xs text-ink-soft">
                 Required is {formatDuration(data.week.requiredMinutes)} because of{' '}
-                {data.week.counts.leaveDays + data.week.counts.holidays} leave/holiday day
-                {data.week.counts.leaveDays + data.week.counts.holidays > 1 ? 's' : ''}.
+                {data.week.counts.leaveDays + data.week.counts.holidays + data.week.counts.birthdayDays} leave/holiday day
+                {data.week.counts.leaveDays + data.week.counts.holidays + data.week.counts.birthdayDays > 1 ? 's' : ''}.
               </p>
             )}
             <div className="mt-3 grid grid-flow-col auto-cols-fr gap-2">

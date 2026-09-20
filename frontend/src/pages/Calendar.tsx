@@ -57,6 +57,7 @@ export default function Calendar() {
           <Chip className={m.balanceMinutes < 0 ? 'text-[#8a6300]' : 'text-ok'}>Balance {formatDuration(m.balanceMinutes, { signed: true })}</Chip>
           <Chip>Overtime {formatDuration(m.periodOvertimeMinutes)}</Chip>
           <Chip>Leave {m.counts.leaveDays}</Chip>
+          {m.counts.birthdayDays > 0 && <Chip>Birthday {m.counts.birthdayDays}</Chip>}
           <Chip>WFH {m.counts.wfh}</Chip>
           <Chip>Holiday {m.counts.holidays}</Chip>
           <Chip>Unpaid (LOP) {m.lopDays ?? 0}</Chip>
