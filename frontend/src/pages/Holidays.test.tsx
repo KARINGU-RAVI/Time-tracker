@@ -26,7 +26,7 @@ beforeEach(() => {
   Object.values(api).forEach((m) => m.mockReset());
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-09-18T10:00:00Z'));
-  api.get.mockResolvedValue({ holidays: list, summary: { company: 2, optional: 1 } });
+  api.get.mockImplementation(async (url: string) => (url === '/holidays/image' ? { exists: false } : { holidays: list, summary: { company: 2, optional: 1 } }));
 });
 afterEach(() => vi.useRealTimers());
 
@@ -67,8 +67,15 @@ describe('Holidays list', () => {
 
   it('explains a failed load and retries', async () => {
     api.get.mockReset();
-    api.get.mockRejectedValueOnce(new ApiError('NETWORK_ERROR', "Can't reach the server. Check your connection and try again.", 0));
-    api.get.mockResolvedValue({ holidays: list, summary: { company: 2, optional: 1 } });
+    let failed = false;
+    api.get.mockImplementation(async (url: string) => {
+      if (url === '/holidays/image') return { exists: false };
+      if (!failed) {
+        failed = true; // only the holiday list fails, once
+        throw new ApiError('NETWORK_ERROR', "Can't reach the server. Check your connection and try again.", 0);
+      }
+      return { holidays: list, summary: { company: 2, optional: 1 } };
+    });
     open();
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Diwali')).toBeInTheDocument();

@@ -71,6 +71,10 @@ export async function post<T>(url: string, body?: unknown): Promise<T> {
 export async function put<T>(url: string, body?: unknown): Promise<T> {
   return (await http.put<T>(url, body)).data;
 }
+/** Uploads raw bytes (a picture) with its own content type, instead of JSON. */
+export async function putBinary<T>(url: string, body: Blob, contentType: string, params?: Record<string, unknown>): Promise<T> {
+  return (await http.put<T>(url, body, { params, headers: { 'Content-Type': contentType }, timeout: 60_000 })).data;
+}
 export async function del<T = void>(url: string): Promise<T> {
   return (await http.delete<T>(url)).data;
 }

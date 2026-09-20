@@ -69,6 +69,7 @@ model User {
   isAdmin          Boolean   @default(false)
 
   authTokens        AuthToken[]
+  holidayImage      HolidayCalendarImage?
   settings          UserSettings?
   attendances       Attendance[]
   sessions          AttendanceSession[]
@@ -270,4 +271,18 @@ model RateLimit {
   count       Int      @default(0)
 
   @@id([key, windowStart])
+}
+
+/// One picture of the person's holiday calendar (a photo or screenshot), kept for viewing. At most one per account,
+/// already shrunk by the browser; the size is capped in the database as well.
+model HolidayCalendarImage {
+  userId    String   @id @db.Uuid
+  mimeType  String
+  data      Bytes
+  width     Int
+  height    Int
+  fileName  String?
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

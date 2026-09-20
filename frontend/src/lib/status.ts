@@ -52,6 +52,16 @@ export function dayStatus(d: Day): StatusInfo {
     : { label: 'Short', tone: 'warn', icon: 'clock' };
 }
 
+/**
+ * What the Balance column shows for a day. A number once the day has counted; otherwise a word that says why there is none:
+ * "Pending" for a working day that has not happened yet, and a dash where nothing is required (weekly off, holiday, leave).
+ */
+export function dayBalanceLabel(d: Day): { text: string; hint: string | null } {
+  if (d.balanceMinutes !== null) return { text: formatDuration(d.balanceMinutes, { signed: true }), hint: null };
+  if (d.isFuture && d.requiredMinutes > 0) return { text: 'Pending', hint: 'Counted once the day has passed' };
+  return { text: '\u2013', hint: 'Nothing is required this day' };
+}
+
 /** Tailwind classes per tone (tinted background + coloured text). */
 export const toneClasses: Record<Tone, string> = {
   ok: 'bg-ok/10 text-ok',

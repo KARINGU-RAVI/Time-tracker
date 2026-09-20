@@ -60,7 +60,7 @@ describe('Summary', () => {
 
     const wed = within(rows[3]!);
     expect(wed.getByText('Leave')).toBeInTheDocument();
-    expect(wed.getByText('n/a')).toBeInTheDocument(); // no balance on a leave day
+    expect(wed.getAllByText('–')).toHaveLength(2); // worked and balance both show a dash: nothing is required on a leave day
 
     const thu = within(rows[4]!);
     expect(thu.getByText('Needs fix')).toBeInTheDocument();
@@ -112,3 +112,53 @@ describe('Summary', () => {
     expect(await screen.findByRole('table')).toBeInTheDocument();
   });
 });
+
+describe('Summary balance column', () => {
+  it('never shows "n/a": a day with nothing required shows a dash, with the reason on hover', async () => {
+    open();
+    const table = await screen.findByRole('table');
+    expect(within(table).queryByText('n/a')).not.toBeInTheDocument();
+    const rows = within(table).getAllByRole('row');
+    const leaveBalance = within(rows[3]!).getAllByRole('cell').at(-1)!;
+    expect(leaveBalance).toHaveTextContent('–');
+    expect(leaveBalance).toHaveAttribute('title', 'Nothing is required this day');
+    const sat = within(rows[6]!).getAllByRole('cell').at(-1)!;
+    expect(sat).toHaveTextContent('–');
+  });
+
+  it('a week that has not started shows Pending days, no balance, and says why', async () => {
+    const future = makePeriod({
+      start: '2026-09-21',
+      end: '2026-09-27',
+      requiredMinutes: 2400,
+      workedMinutes: 0,
+      balanceMinutes: -2400,
+      days: [
+        ...['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25'].map((date) =>
+          makeDay({ date, kind: 'WORKING', isFuture: true, workedMinutes: 0, requiredMinutes: 480, balanceMinutes: null }),
+        ),
+        makeDay({ date: '2026-09-26', kind: 'WEEKLY_OFF', requiredMinutes: 0, workedMinutes: 0, balanceMinutes: null }),
+        makeDay({ date: '2026-09-27', kind: 'WEEKLY_OFF', requiredMinutes: 0, workedMinutes: 0, balanceMinutes: null }),
+      ],
+    });
+    api.get.mockImplementation(async () => future);
+    vi.setSystemTime(new Date('2026-09-20T10:00:00Z')); // Sunday: the whole week shown is still ahead
+    open();
+    const table = await screen.findByRole('table');
+    expect(within(table).queryByText('n/a')).not.toBeInTheDocument();
+    expect(within(table).getAllByText('Pending')).toHaveLength(5);
+    expect(within(within(table).getAllByRole('row')[1]!).getByText('Pending').closest('td')).toHaveAttribute('title', 'Counted once the day has passed');
+    expect(screen.getByText('Not started')).toBeInTheDocument(); // instead of a misleading -40h 00m
+    expect(screen.queryByText('-40h 00m')).not.toBeInTheDocument();
+    expect(screen.getByText('40h 00m')).toBeInTheDocument(); // the target is still shown
+    expect(screen.getByText(/has not started yet, so there is no balance to show/)).toBeInTheDocument();
+  });
+
+  it('the current week keeps its real balance (only a week that has not begun is "Not started")', async () => {
+    open();
+    expect(await screen.findByText('-1h 40m')).toBeInTheDocument();
+    expect(screen.queryByText('Not started')).not.toBeInTheDocument();
+    expect(screen.queryByText(/has not started yet/)).not.toBeInTheDocument();
+  });
+});
+

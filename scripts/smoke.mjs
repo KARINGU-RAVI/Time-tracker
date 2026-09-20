@@ -108,6 +108,7 @@ export async function runSmoke(baseInput, options = {}) {
     must(r.status === 200, `/api/health returned ${r.status}: ${r.text.slice(0, 120)}`);
     must(/json/.test(r.headers.get('content-type') ?? ''), '/api/health is not JSON');
     must(r.json?.ok === true, 'health response is not { ok: true }');
+    must((r.headers.get('cache-control') ?? '') === 'private, no-cache', `API answers must not be stored by shared caches (got "${r.headers.get('cache-control')}")`);
     const skew = Math.abs(Date.parse(r.json.time) - Date.now());
     must(skew < 5 * 60_000, `the server clock differs from yours by ${Math.round(skew / 1000)}s`);
     return `${Date.now() - started} ms`;

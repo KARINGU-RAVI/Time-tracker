@@ -25,6 +25,9 @@ export function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
+        // Anything without its own setting is reused for 30 s, and kept for 10 min after its screen closes.
+        staleTime: 30_000,
+        gcTime: 10 * 60_000,
         // Retry only network hiccups, never a real 4xx answer.
         retry: (count, err) => err instanceof ApiError && err.isNetwork && count < 2,
         refetchOnReconnect: true,

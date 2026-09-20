@@ -71,9 +71,10 @@ async function invoke(h: Handler, e: NetlifyEvent) {
     headers?: Record<string, string>;
     multiValueHeaders?: Record<string, string[]>;
     body: string;
+    isBase64Encoded?: boolean;
   };
   const cookies = [...(res.multiValueHeaders?.['set-cookie'] ?? []), ...(res.headers?.['set-cookie'] ? [res.headers['set-cookie']] : [])];
-  return { status: res.statusCode, body: res.body, json: () => JSON.parse(res.body), headers: res.headers ?? {}, cookies };
+  return { status: res.statusCode, body: res.body, isBase64Encoded: res.isBase64Encoded === true, json: () => JSON.parse(res.body), headers: res.headers ?? {}, cookies };
 }
 
 describe('path handling', () => {
@@ -190,6 +191,41 @@ describe('serving requests the way Netlify sends them', () => {
     expect(bad.status).toBe(401);
     expect(bad.json().error.code).toBe('INVALID_CREDENTIAL');
     expect(bad.cookies).toHaveLength(0);
+  });
+
+  it('carries a picture as raw bytes both ways (upload, then download identical)', async () => {
+    await setup();
+    const login = await invoke(handler, {
+      httpMethod: 'POST',
+      path: '/api/auth/google',
+      headers: { 'content-type': 'application/json', origin: ORIGIN },
+      body: JSON.stringify({ credential: 'good-owner-token-123' }),
+    });
+    const cookie = login.cookies[0]!.split(';')[0]!;
+    // A PNG whose bytes are NOT valid UTF-8: if anything treated it as text it would be corrupted.
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from([0xff, 0xfe, 0x00, 0x80, 0x81, 0xc3, 0x28, 0xf0, 0x9f]), Buffer.alloc(200, 0xab)]);
+
+    const up = await invoke(handler, {
+      httpMethod: 'PUT',
+      path: '/.netlify/functions/api/holidays/image',
+      headers: { cookie, origin: ORIGIN, 'content-type': 'image/png' },
+      queryStringParameters: { width: '10', height: '10', name: 'cal.png' },
+      body: png.toString('base64'),
+      isBase64Encoded: true,
+    });
+    expect(up.status).toBe(200);
+    expect(up.json()).toMatchObject({ exists: true, mimeType: 'image/png', fileName: 'cal.png' });
+
+    const down = await invoke(handler, { path: '/api/holidays/image/file', headers: { cookie } });
+    expect(down.status).toBe(200);
+    expect(down.isBase64Encoded).toBe(true); // Netlify is told this is binary
+    expect(Buffer.compare(Buffer.from(down.body, 'base64'), png)).toBe(0);
+    expect(down.headers['content-type']).toBe('image/png');
+    expect(down.headers['x-content-type-options']).toBe('nosniff');
+
+    // Clean up so the next run starts empty, and check a stranger without the cookie cannot get it.
+    expect((await invoke(handler, { path: '/api/holidays/image/file' })).status).toBe(401);
+    expect((await invoke(handler, { httpMethod: 'DELETE', path: '/api/holidays/image', headers: { cookie, origin: ORIGIN } })).status).toBe(204);
   });
 
   it('reads base64-encoded bodies and query strings', async () => {

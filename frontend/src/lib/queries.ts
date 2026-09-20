@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, del, get, post, put } from './api';
+import { ApiError, del, get, post, put, putBinary } from './api';
+import { shrinkImage } from './image';
 import type {
   AttendanceStatus,
   Dashboard,
@@ -14,13 +15,21 @@ import type {
 } from './types';
 
 /** Data older than this is refetched on focus. Attendance changes rarely, but "now" must stay right. */
-const STALE_MS = 15_000;
+/**
+ * How long a stored answer is reused before the server is asked again (React Query keeps it in memory meanwhile, so opening
+ * a screen twice, or switching back to the tab, does not repeat the same request). Every save marks everything stale, so
+ * a person always sees their own changes at once; these times only decide how quickly a change made on ANOTHER device shows up.
+ *  - live: today's running figures, also re-checked on a timer
+ *  - data: days, weeks, months and leave balances
+ *  - reference: things that rarely change (work rules, holidays, the calendar picture)
+ */
+const FRESH = { live: 15_000, data: 60_000, reference: 5 * 60_000 } as const;
 
 export function useDashboard() {
   return useQuery({
     queryKey: ['dashboard'],
     queryFn: () => get<Dashboard>('/dashboard'),
-    staleTime: STALE_MS,
+    staleTime: FRESH.live,
     // Another device may have checked in or out: look again often while the screen is open, and whenever it is switched back to.
     refetchInterval: 20_000,
     refetchOnWindowFocus: true,
@@ -29,42 +38,70 @@ export function useDashboard() {
 }
 
 export function useDay(date: string) {
-  return useQuery({ queryKey: ['day', date], queryFn: () => get<DayDetail>(`/attendance/${date}`), staleTime: STALE_MS });
+  return useQuery({ queryKey: ['day', date], queryFn: () => get<DayDetail>(`/attendance/${date}`), staleTime: FRESH.data });
 }
 
 export function useRange(startDate: string, endDate: string) {
   return useQuery({
     queryKey: ['range', startDate, endDate],
     queryFn: () => get<{ days: Day[] }>('/attendance', { startDate, endDate }),
-    staleTime: STALE_MS,
+    staleTime: FRESH.data,
   });
 }
 
 export function useWeek(date: string) {
-  return useQuery({ queryKey: ['week', date], queryFn: () => get<Period>('/summary/week', { date }), staleTime: STALE_MS });
+  return useQuery({ queryKey: ['week', date], queryFn: () => get<Period>('/summary/week', { date }), staleTime: FRESH.data });
 }
 
 export function useMonth(year: number, month: number) {
   return useQuery({
     queryKey: ['month', year, month],
     queryFn: () => get<Period>('/summary/month', { year, month }),
-    staleTime: STALE_MS,
+    staleTime: FRESH.data,
   });
 }
 
 export function useLeave() {
-  return useQuery({ queryKey: ['leave'], queryFn: () => get<LeaveSummary>('/leave'), staleTime: STALE_MS });
+  return useQuery({ queryKey: ['leave'], queryFn: () => get<LeaveSummary>('/leave'), staleTime: FRESH.data });
 }
 
 export function useHolidays(year: number) {
   return useQuery({
     queryKey: ['holidays', year],
     queryFn: () => get<{ holidays: Holiday[]; summary: { company: number; optional: number } }>('/holidays', { year }),
+    staleTime: FRESH.reference,
+  });
+}
+
+export type HolidayImageMeta =
+  | { exists: false }
+  | { exists: true; mimeType: string; width: number; height: number; fileName: string | null; updatedAt: string };
+
+export function useHolidayImage() {
+  return useQuery({ queryKey: ['holiday-image'], queryFn: () => get<HolidayImageMeta>('/holidays/image'), staleTime: FRESH.reference });
+}
+
+export function useUploadHolidayImage() {
+  const qc = useQueryClient();
+  return useMutation<HolidayImageMeta, Error, File>({
+    mutationFn: async (file) => {
+      const shrunk = await shrinkImage(file);
+      return putBinary<HolidayImageMeta>('/holidays/image', shrunk.blob, shrunk.blob.type, { width: shrunk.width, height: shrunk.height, name: shrunk.name });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['holiday-image'] }),
+  });
+}
+
+export function useDeleteHolidayImage() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => del('/holidays/image'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['holiday-image'] }),
   });
 }
 
 export function useRules() {
-  return useQuery({ queryKey: ['rules'], queryFn: () => get<{ rules: WorkRule[] }>('/rules') });
+  return useQuery({ queryKey: ['rules'], queryFn: () => get<{ rules: WorkRule[] }>('/rules'), staleTime: FRESH.reference });
 }
 
 /**
