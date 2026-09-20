@@ -135,10 +135,9 @@ describe('Applying leave', () => {
     expect(half).toBeEnabled();
     const user = userEvent.setup();
     await user.click(screen.getByRole('radio', { name: 'Bereavement' }));
-    expect(half).toBeDisabled();
+    expect(screen.queryByLabelText(/Half day/)).not.toBeInTheDocument(); // not offered for bereavement
     await user.click(screen.getByRole('radio', { name: 'Sick leave' }));
-    expect(half).toBeEnabled();
-    await user.click(half);
+    await user.click(screen.getByLabelText(/Half day/));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/preview', applyBody({ type: 'SICK_LEAVE', half: true })));
   });
 
@@ -168,7 +167,7 @@ describe('Bereavement', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('radio', { name: 'Bereavement' }));
     await user.selectOptions(screen.getByLabelText('Bereavement event'), 'e1');
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/preview', applyBody({ type: 'BEREAVEMENT_LEAVE' })));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/preview', applyBody({ type: 'BEREAVEMENT_LEAVE', bereavementEventId: 'e1' })));
     await user.click(screen.getByRole('button', { name: 'Apply leave' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/apply', applyBody({ type: 'BEREAVEMENT_LEAVE', bereavementEventId: 'e1' })));
   });
@@ -227,7 +226,9 @@ describe('Birthday half-day', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('radio', { name: 'Birthday half-day' }));
     expect(await screen.findByText('0.5 day(s) will be unpaid (salary cut).')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Apply leave' })).toBeDisabled(); // which half must be chosen first
+    await user.click(screen.getByRole('radio', { name: 'First half' }));
     await user.click(screen.getByRole('button', { name: 'Apply leave' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/apply', applyBody({ type: 'BIRTHDAY_LEAVE', half: true })));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/apply', applyBody({ type: 'BIRTHDAY_LEAVE', half: true, halfPart: 'FIRST' })));
   });
 });

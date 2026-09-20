@@ -1,18 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Cake, Copy, Palmtree, Plus, Star } from 'lucide-react';
+import { useState } from 'react';
+import { Cake, Palmtree, Plus, Star } from 'lucide-react';
+import { EarlierLeaveCard, LeaveForm } from '@/components/LeaveForm';
 import { Button } from '@/components/ui/button';
 import { Banner, Card, CardTitle, Chip, ErrorState, Field, Skeleton, inputClass } from '@/components/ui/primitives';
 import { cn } from '@/lib/cn';
 import { shortDate, todayIst } from '@/lib/dates';
-import { useAddBereavementEvent, useApplyLeave, useLeave, useLeavePreview, type LeaveInput } from '@/lib/queries';
-
-const TYPES: Array<{ value: LeaveInput['type']; label: string }> = [
-  { value: 'CASUAL_LEAVE', label: 'Casual leave' },
-  { value: 'SICK_LEAVE', label: 'Sick leave' },
-  { value: 'BEREAVEMENT_LEAVE', label: 'Bereavement' },
-  { value: 'OPTIONAL_HOLIDAY', label: 'Optional holiday' },
-  { value: 'BIRTHDAY_LEAVE', label: 'Birthday half-day' },
-];
+import { useAddBereavementEvent, useLeave } from '@/lib/queries';
 
 // Plain names for the kinds of row in the leave history (shown when a row has no note of its own).
 const KIND_LABEL: Record<string, string> = {
@@ -28,54 +21,13 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export default function Leave() {
   const q = useLeave();
-  const preview = useLeavePreview();
-  const apply = useApplyLeave();
   const addEvent = useAddBereavementEvent();
-
   const today = todayIst();
-  const [type, setType] = useState<LeaveInput['type']>('CASUAL_LEAVE');
-  const [start, setStart] = useState(today);
-  const [end, setEnd] = useState(today);
-  const [half, setHalf] = useState(false);
-  const [informed, setInformed] = useState(false);
-  const [eventId, setEventId] = useState('');
-  const [copied, setCopied] = useState(false);
   const [relation, setRelation] = useState('');
-
-  const birthday = type === 'BIRTHDAY_LEAVE';
-  const halfAllowed = type === 'CASUAL_LEAVE' || type === 'SICK_LEAVE';
-  const input: LeaveInput = {
-    type,
-    startDate: start,
-    // A birthday half-day is one date, always half a day.
-    endDate: birthday ? start : end < start ? start : end,
-    half: birthday || (halfAllowed && half && start === end),
-    managerInformed: informed,
-    bereavementEventId: type === 'BEREAVEMENT_LEAVE' ? eventId || null : null,
-  };
-
-  // Live preview: what is paid, what is unpaid. Debounced so typing dates stays smooth.
-  const key = JSON.stringify([input.type, input.startDate, input.endDate, input.half]);
-  useEffect(() => {
-    const id = window.setTimeout(() => preview.mutate(input), 300);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
 
   if (q.isLoading) return <div className="flex flex-col gap-4" aria-busy="true"><Skeleton className="h-40" /><Skeleton className="h-64" /></div>;
   if (q.isError || !q.data) return <ErrorState message={q.error?.message ?? "Can't load leave."} onRetry={() => q.refetch()} />;
   const d = q.data;
-  const pv = preview.data;
-
-  async function copy(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -165,91 +117,9 @@ export default function Leave() {
         </Card>
       </div>
 
-      <Card>
-        <CardTitle>Apply leave</CardTitle>
-        <div role="radiogroup" aria-label="Leave type" className="flex flex-wrap gap-2">
-          {TYPES.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              role="radio"
-              aria-checked={type === t.value}
-              onClick={() => setType(t.value)}
-              className={cn('rounded-full border px-3.5 py-2 text-sm font-medium', type === t.value ? 'border-primary bg-primary-soft text-primary' : 'border-line text-ink-soft hover:bg-muted')}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <LeaveForm d={d} />
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Field label="From" htmlFor="leave-from">
-            <input id="leave-from" type="date" className={inputClass} value={start} onChange={(e) => { setStart(e.target.value); if (end < e.target.value) setEnd(e.target.value); }} />
-          </Field>
-          <Field label="To" htmlFor="leave-to">
-            <input id="leave-to" type="date" className={inputClass} value={birthday ? start : end} min={start} disabled={birthday} onChange={(e) => setEnd(e.target.value)} />
-          </Field>
-        </div>
-
-        {birthday && (
-          <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm text-ink-soft">
-            A birthday half-day is one date and always half a day (you still work the other half). It has its own yearly amount and does not use your annual leave.
-          </p>
-        )}
-
-        <label className={cn('mt-3 flex items-center gap-2 text-sm', (!halfAllowed || start !== end) && 'opacity-50', birthday && 'hidden')}>
-          <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={half && halfAllowed && start === end} disabled={!halfAllowed || start !== end} onChange={(e) => setHalf(e.target.checked)} />
-          Half day <span className="text-xs text-ink-soft">(single date, casual or sick)</span>
-        </label>
-
-        {type === 'BEREAVEMENT_LEAVE' && (
-          <div className="mt-3">
-            <Field label="Bereavement event" htmlFor="leave-event">
-              <select id="leave-event" className={inputClass} value={eventId} onChange={(e) => setEventId(e.target.value)}>
-                <option value="">Choose an event</option>
-                {d.bereavement.events.map((e) => (
-                  <option key={e.id} value={e.id}>{e.relation} ({e.startDate})</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        )}
-
-        <div className="mt-4 space-y-3" aria-live="polite">
-          {preview.isError && <Banner tone="bad">{preview.error.message}</Banner>}
-          {pv && <p className="text-sm text-ink-soft">{pv.summary}</p>}
-          {pv && pv.skipped.length > 0 && (
-            <p className="text-xs text-ink-soft">
-              Skipped: {pv.skipped.map((s) => `${shortDate(s.date)} (${s.reason})`).join(', ')}
-            </p>
-          )}
-          {pv?.warning && (
-            <Banner tone="bad">
-              <strong>{pv.warning}</strong>
-              <span className="mt-1 block text-xs">You can still save. Unpaid days are recorded for the month they fall in.</span>
-            </Banner>
-          )}
-          {pv?.managerMessage && (
-            <div className="rounded-xl border border-line bg-muted p-3 text-sm">
-              <div className="mb-1 text-xs font-medium text-ink-soft">Message to your manager</div>
-              <p>{pv.managerMessage}</p>
-              <Button className="mt-2" variant="outline" size="sm" onClick={() => copy(pv.managerMessage!)}>
-                <Copy size={14} aria-hidden /> {copied ? 'Copied' : 'Copy'}
-              </Button>
-              <label className="mt-3 flex items-center gap-2 text-sm">
-                <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={informed} onChange={(e) => setInformed(e.target.checked)} />
-                Manager informed
-              </label>
-            </div>
-          )}
-          {apply.error && <Banner tone="bad">{apply.error.message}</Banner>}
-          {apply.isSuccess && <Banner tone="ok">Leave recorded for {apply.data.applied.length} day(s).</Banner>}
-        </div>
-
-        <Button className="mt-4 w-full sm:w-auto" size="md" disabled={apply.isPending || !pv || pv.workingDays.length === 0} onClick={() => apply.mutate(input)}>
-          {apply.isPending ? 'Saving…' : 'Apply leave'}
-        </Button>
-      </Card>
+      <EarlierLeaveCard d={d} />
 
       <Card>
         <CardTitle>Unpaid days by month</CardTitle>

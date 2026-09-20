@@ -206,6 +206,7 @@ export function leaveRoutes({ prisma, clock }: AppDeps): Router {
       });
       res.json({
         ...summary,
+        trackingStartDate: cfg.trackingStartDate,
         earlier: earlierRows.map((e) => ({ id: e.id, date: fromDbDate(e.effectiveDate), pool: e.pool, days: Math.abs(Number(e.days)), note: e.note })),
         bereavement: {
           maxDaysPerEvent: policy?.bereavementDaysPerEvent ?? 5,

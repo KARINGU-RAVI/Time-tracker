@@ -49,6 +49,7 @@ export const makeDetail = (over: Partial<DayDetail> = {}, day: Partial<Day> = {}
   day: makeDay(day),
   status: 'WORKING',
   dayFraction: 1,
+  halfDayPart: null,
   notes: null,
   managerInformed: false,
   bereavementEventId: null,
@@ -81,6 +82,8 @@ export const makeLeave = (over: Partial<LeaveSummary> = {}): LeaveSummary => ({
   year: 2026,
   annual: { balance: 12.75, carriedIn: 2, accruedThisYear: 15.75, usedThisYear: 5, nextCredit: { date: '2026-10-01', days: 1.75 } },
   optional: { quota: 2, used: 1, remaining: 1 },
+  trackingStartDate: '2026-09-01',
+  earlier: [],
   birthday: { quota: 0.5, used: 0.5, remaining: 0 },
   lopByMonth: {},
   ledger: [

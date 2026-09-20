@@ -72,6 +72,7 @@ describe('DayDetail', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('radio', { name: 'Casual leave' }));
     await user.click(screen.getByLabelText(/Half day/));
+    await user.click(screen.getByRole('radio', { name: 'First half' }));
     await user.click(screen.getByLabelText('Manager informed'));
     await user.type(screen.getByLabelText('Notes'), '  Doctor  ');
     await user.click(screen.getByRole('button', { name: 'Save day' }));
@@ -79,6 +80,7 @@ describe('DayDetail', () => {
       expect(api.put).toHaveBeenCalledWith('/attendance/2026-09-17', {
         status: 'CASUAL_LEAVE',
         dayFraction: 0.5,
+        halfDayPart: 'FIRST',
         notes: 'Doctor',
         managerInformed: true,
         bereavementEventId: null,
@@ -187,9 +189,10 @@ describe('Birthday half-day on the day screen', () => {
     open();
     const user = userEvent.setup();
     await user.click(await screen.findByRole('radio', { name: 'Birthday half-day' }));
+    await user.click(screen.getByRole('radio', { name: 'Second half' }));
     await user.click(screen.getByRole('button', { name: 'Save day' }));
     await waitFor(() =>
-      expect(api.put).toHaveBeenCalledWith('/attendance/2026-09-17', { status: 'BIRTHDAY_LEAVE', dayFraction: 0.5, notes: null, managerInformed: false, bereavementEventId: null }),
+      expect(api.put).toHaveBeenCalledWith('/attendance/2026-09-17', { status: 'BIRTHDAY_LEAVE', dayFraction: 0.5, halfDayPart: 'SECOND', notes: null, managerInformed: false, bereavementEventId: null }),
     );
   });
 
@@ -200,3 +203,55 @@ describe('Birthday half-day on the day screen', () => {
     expect(screen.getAllByText('Birthday half-day').length).toBeGreaterThan(0); // the status pill too
   });
 });
+
+describe('first or second half on the day screen', () => {
+  it('asks which half only for a half day, and will not save a half day without it', async () => {
+    serve(makeDetail({}, { date: '2026-09-17' }));
+    open();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Sick leave' }));
+    expect(screen.queryByText('Which half is your leave?')).not.toBeInTheDocument(); // a full day
+    await user.click(screen.getByLabelText(/Half day/));
+    expect(screen.getByText('Which half is your leave?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save day' })).toBeDisabled();
+    expect(screen.getByText('Choose the first or second half to save.')).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'Second half' }));
+    expect(screen.getByRole('button', { name: 'Save day' })).toBeEnabled();
+  });
+
+  it('opens a saved half day with its half already selected', async () => {
+    serve(makeDetail({ status: 'CASUAL_LEAVE', dayFraction: 0.5, halfDayPart: 'SECOND' }, { date: '2026-09-17', kind: 'HALF_DAY_LEAVE', requiredMinutes: 240 }));
+    open();
+    expect(await screen.findByRole('radio', { name: 'Second half', checked: true })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'First half', checked: false })).toBeInTheDocument();
+  });
+
+  it('a half day saved earlier without a half must have one chosen before it can be saved again', async () => {
+    serve(makeDetail({ status: 'CASUAL_LEAVE', dayFraction: 0.5, halfDayPart: null }, { date: '2026-09-17', kind: 'HALF_DAY_LEAVE', requiredMinutes: 240 }));
+    open();
+    await screen.findByText('Which half is your leave?');
+    expect(screen.getByRole('button', { name: 'Save day' })).toBeDisabled();
+  });
+
+  it('a full day never sends a half', async () => {
+    serve(makeDetail({}, { date: '2026-09-17' }));
+    api.put.mockResolvedValue(makeDetail({ status: 'SICK_LEAVE' }));
+    open();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('radio', { name: 'Sick leave' }));
+    await user.click(screen.getByRole('button', { name: 'Save day' }));
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/attendance/2026-09-17', expect.objectContaining({ status: 'SICK_LEAVE', dayFraction: 1, halfDayPart: null })));
+  });
+
+  it('un-ticking the half day removes the question and the half', async () => {
+    serve(makeDetail({ status: 'CASUAL_LEAVE', dayFraction: 0.5, halfDayPart: 'FIRST' }, { date: '2026-09-17', kind: 'HALF_DAY_LEAVE', requiredMinutes: 240 }));
+    api.put.mockResolvedValue(makeDetail({ status: 'CASUAL_LEAVE' }));
+    open();
+    const user = userEvent.setup();
+    await user.click(await screen.findByLabelText(/Half day/));
+    expect(screen.queryByText('Which half is your leave?')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save day' }));
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/attendance/2026-09-17', expect.objectContaining({ dayFraction: 1, halfDayPart: null })));
+  });
+});
+

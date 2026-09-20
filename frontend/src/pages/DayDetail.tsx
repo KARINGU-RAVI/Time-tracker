@@ -37,6 +37,7 @@ export default function DayDetail() {
 
   const [status, setStatus] = useState<AttendanceStatus>('WORKING');
   const [half, setHalf] = useState(false);
+  const [halfPart, setHalfPart] = useState<'FIRST' | 'SECOND' | null>(null);
   const [notes, setNotes] = useState('');
   const [informed, setInformed] = useState(false);
   const [eventId, setEventId] = useState<string>('');
@@ -49,6 +50,7 @@ export default function DayDetail() {
     if (!data) return;
     setStatus(data.status ?? 'WORKING');
     setHalf(data.dayFraction === 0.5);
+    setHalfPart(data.halfDayPart ?? null);
     setNotes(data.notes ?? '');
     setInformed(data.managerInformed);
     setEventId(data.bereavementEventId ?? '');
@@ -70,6 +72,7 @@ export default function DayDetail() {
   const st = dayStatus(day);
   const birthday = status === 'BIRTHDAY_LEAVE';
   const halfAllowed = status === 'CASUAL_LEAVE' || status === 'SICK_LEAVE' || birthday;
+  const isHalf = birthday || (halfAllowed && half);
   const hasRecord = data.status !== null;
   const events = leave.data?.bereavement.events ?? [];
 
@@ -78,7 +81,8 @@ export default function DayDetail() {
     setDay.mutate(
       {
         status,
-        dayFraction: birthday || (halfAllowed && half) ? 0.5 : 1,
+        dayFraction: isHalf ? 0.5 : 1,
+        halfDayPart: isHalf && halfPart ? halfPart : null,
         notes: notes.trim() ? notes.trim() : null,
         managerInformed: informed,
         bereavementEventId: status === 'BEREAVEMENT_LEAVE' ? eventId || null : null,
@@ -217,6 +221,27 @@ export default function DayDetail() {
               Half day {birthday ? <span className="text-xs text-ink-soft">(a birthday leave is always a half day)</span> : !halfAllowed && <span className="text-xs text-ink-soft">(only for casual, sick or birthday leave)</span>}
             </label>
 
+            {isHalf && (
+              <div className="mt-3">
+                <p className="mb-1.5 text-sm font-medium">Which half is your leave?</p>
+                <div role="radiogroup" aria-label="Which half" className="flex gap-2">
+                  {([['FIRST', 'First half'], ['SECOND', 'Second half']] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={halfPart === value}
+                      onClick={() => setHalfPart(value)}
+                      className={cn('rounded-full border px-3.5 py-2 text-sm font-medium', halfPart === value ? 'border-primary bg-primary-soft text-primary' : 'border-line text-ink-soft hover:bg-muted')}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-ink-soft">You work the other half.</p>
+              </div>
+            )}
+
             {status === 'BEREAVEMENT_LEAVE' && (
               <div className="mt-3">
                 <label htmlFor="event" className="text-sm font-medium text-ink-soft">
@@ -260,9 +285,10 @@ export default function DayDetail() {
               />
             </div>
 
+            {isHalf && !halfPart && <p className="mt-2 text-xs text-ink-soft">Choose the first or second half to save.</p>}
             {setDay.error && <p role="alert" className="mt-2 text-sm text-bad">{setDay.error.message}</p>}
             {saved && !setDay.isPending && !setDay.error && <p className="mt-2 text-sm text-ok">Saved.</p>}
-            <Button className="mt-4 w-full" disabled={setDay.isPending} onClick={save}>
+            <Button className="mt-4 w-full" disabled={setDay.isPending || (isHalf && !halfPart)} onClick={save}>
               {setDay.isPending ? 'Saving…' : 'Save day'}
             </Button>
           </Card>
