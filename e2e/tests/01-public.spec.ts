@@ -1,4 +1,4 @@
-import { expect, test } from '../support';
+import { expect, test, uniqueEmail } from '../support';
 
 test.describe('public pages (nobody signed in)', () => {
   test('the front page explains what the app is for and offers sign-in and sign-up', async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('public pages (nobody signed in)', () => {
 
   test('the forgot-password page always gives the same answer, whether or not the account exists', async ({ page }) => {
     await page.goto('/forgot-password');
-    await page.getByLabel('Email').fill('nobody-here@example.test');
+    await page.getByLabel('Email').fill(uniqueEmail('nobody'));
     await page.getByRole('button', { name: 'Send reset link' }).click();
     await expect(page.getByText('If an account exists for this email, a reset link is on its way.')).toBeVisible();
   });

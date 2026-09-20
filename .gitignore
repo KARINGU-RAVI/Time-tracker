@@ -10,3 +10,7 @@ coverage/
 # Real environment files (never commit); templates end in .example
 *.env
 deploy/netlify.env
+
+# test run output
+e2e/test-results/
+e2e/playwright-report/

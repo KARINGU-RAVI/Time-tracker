@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Cake, Palmtree, Plus, Star } from 'lucide-react';
 import { EarlierLeaveCard, LeaveForm } from '@/components/LeaveForm';
 import { Button } from '@/components/ui/button';
-import { Banner, Card, CardTitle, Chip, ErrorState, Field, Skeleton, inputClass } from '@/components/ui/primitives';
+import { Banner, Card, CardTitle, Chip, ErrorState, Skeleton, inputClass } from '@/components/ui/primitives';
 import { cn } from '@/lib/cn';
 import { shortDate, todayIst } from '@/lib/dates';
 import { useAddBereavementEvent, useLeave } from '@/lib/queries';
