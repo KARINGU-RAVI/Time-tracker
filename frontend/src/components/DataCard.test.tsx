@@ -109,7 +109,7 @@ describe('Export a CSV report', () => {
   });
 });
 
-describe('Bring back from a backup', () => {
+describe('Restore from backup', () => {
   async function chooseFile(text = JSON.stringify(BACKUP)) {
     open();
     const user = userEvent.setup();
@@ -156,7 +156,7 @@ describe('Bring back from a backup', () => {
     await user.type(within(dialog).getByLabelText('Type REPLACE to confirm'), 'REPLACE');
     await user.click(within(dialog).getByRole('button', { name: 'Restore and replace everything' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/backup/restore', { confirm: 'REPLACE', backup: BACKUP }));
-    expect(await within(dialog).findByText(/Your data is now the same as the backup/)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/All your data now matches the backup/)).toBeInTheDocument();
   });
 
   it('offers to download the current data before replacing it', async () => {

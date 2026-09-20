@@ -29,6 +29,11 @@ enum AttendanceStatus {
   BIRTHDAY_LEAVE
 }
 
+enum HalfDayPart {
+  FIRST
+  SECOND
+}
+
 enum HolidayType {
   COMPANY
   OPTIONAL
@@ -107,6 +112,8 @@ model Attendance {
   status              AttendanceStatus @default(WORKING)
   /** 1.0 for a full day, 0.5 for a half-day leave. */
   dayFraction         Decimal          @default(1.0) @db.Decimal(2, 1)
+  /// Which half of the day a half-day leave covers; the other half is worked. Null for full days.
+  halfDayPart        HalfDayPart?
   bereavementEventId  String?          @db.Uuid
   /** User told their manager (used when leave will be unpaid). */
   managerInformed     Boolean          @default(false)

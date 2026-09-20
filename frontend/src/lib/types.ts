@@ -67,6 +67,8 @@ export interface DayDetail {
   day: Day;
   status: AttendanceStatus | null;
   dayFraction: 1 | 0.5;
+  /** Which half a half day covers (the other half is worked). */
+  halfDayPart: 'FIRST' | 'SECOND' | null;
   notes: string | null;
   managerInformed: boolean;
   bereavementEventId: string | null;
@@ -127,6 +129,10 @@ export interface LeaveSummary {
     nextCredit: { date: string; days: number } | null;
   };
   optional: { quota: number; used: number; remaining: number };
+  /** The first day that is counted; leave before it is saved as earlier leave. */
+  trackingStartDate: string;
+  /** Leave from before the start date that was added by hand. It lowers the balance. */
+  earlier: Array<{ id: string; date: string; pool: string; days: number; note: string | null }>;
   /** Birthday half-day: separate from annual leave, one allowance a year. */
   birthday: { quota: number; used: number; remaining: number };
   lopByMonth: Record<string, number>;
@@ -140,6 +146,9 @@ export interface LeaveSummary {
 
 export interface LeavePreview {
   workingDays: string[];
+  /** Dates before the start date: saved as earlier leave. */
+  earlierDates?: string[];
+  halfPart?: 'FIRST' | 'SECOND' | null;
   skipped: Array<{ date: string; reason: string }>;
   totalDays: number;
   paid: number;

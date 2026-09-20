@@ -194,11 +194,13 @@ describe('leave edge cases', () => {
     expect((await post({ type: 'BEREAVEMENT_LEAVE', startDate: '2026-09-22', endDate: '2026-09-22', half: true })).body.error.code).toBe('VALIDATION_ERROR');
   });
 
-  it('skips days before the tracking start when previewing', async () => {
+  it('a date before the tracking start becomes earlier leave, the rest are normal leave days', async () => {
     const { app } = await setup(at('2026-09-21', '10:00'));
     const res = await request(app).post('/api/leave/preview').send({ type: 'CASUAL_LEAVE', startDate: '2026-08-31', endDate: '2026-09-01' });
     expect(res.body.workingDays).toEqual(['2026-09-01']);
-    expect(res.body.skipped[0]).toEqual({ date: '2026-08-31', reason: 'Before your tracking start date' });
+    expect(res.body.earlierDates).toEqual(['2026-08-31']);
+    expect(res.body.skipped).toEqual([]);
+    expect(res.body.totalDays).toBe(2);
   });
 });
 

@@ -352,7 +352,7 @@ export default function Setup() {
               <NumberField label="Most leave you can keep for next year" value={form.carryForwardCap} onChange={(v) => set('carryForwardCap', v)} suffix="days" />
               <NumberField label="Optional holidays each year" value={form.optionalQuota} onChange={(v) => set('optionalQuota', v)} />
             </div>
-            <NumberField label="Leave for a death in the family (days each time)" value={form.bereavementDaysPerEvent} onChange={(v) => set('bereavementDaysPerEvent', v)} />
+            <NumberField label="Bereavement leave per event (days)" value={form.bereavementDaysPerEvent} onChange={(v) => set('bereavementDaysPerEvent', v)} />
             <h2 className="mt-2 text-sm font-semibold">Your leave today</h2>
             <NumberField label="Leave left over from last year" value={form.carriedForward} onChange={(v) => set('carriedForward', v)} suffix="days" />
             <NumberField label="Leave already taken this year" value={form.annualUsedSoFar} onChange={(v) => set('annualUsedSoFar', v)} suffix="days" hint="Sick and casual leave taken before the date you start counting." />
@@ -378,7 +378,7 @@ export default function Setup() {
               ) : (
                 <p className="mt-2 text-sm text-ink-soft">Checking…</p>
               )}
-              <p className="mt-2 text-xs text-ink-soft">Updates as you type. Leave for a death in the family, birthday and other separate leave are not counted here.</p>
+              <p className="mt-2 text-xs text-ink-soft">Updates as you type. Bereavement, birthday and other separate leave are not counted here.</p>
             </div>
           </>
         )}

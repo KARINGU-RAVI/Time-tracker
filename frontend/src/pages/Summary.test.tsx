@@ -41,7 +41,7 @@ describe('Summary', () => {
     expect(screen.getByText('32h 00m')).toBeInTheDocument();
     expect(screen.getByText('30h 20m')).toBeInTheDocument();
     expect(screen.getByText('-1h 40m')).toBeInTheDocument();
-    expect(screen.getByText('Extra time this week')).toBeInTheDocument();
+    expect(screen.getByText('Weekly overtime')).toBeInTheDocument();
     expect(screen.getByText(/Required is 32h 00m because of 1 leave\/holiday day/)).toBeInTheDocument();
     expect(screen.getByText(/14 Sep .* 20 Sep 2026/)).toBeInTheDocument();
   });

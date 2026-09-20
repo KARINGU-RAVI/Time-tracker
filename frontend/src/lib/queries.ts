@@ -152,6 +152,8 @@ export function useDeleteSession() {
 export interface DayInput {
   status: AttendanceStatus;
   dayFraction: 1 | 0.5;
+  /** Which half a half day covers. */
+  halfDayPart?: 'FIRST' | 'SECOND' | null;
   notes: string | null;
   managerInformed?: boolean;
   bereavementEventId?: string | null;
@@ -169,9 +171,14 @@ export function useDeleteDay(date: string) {
 
 export interface LeaveInput {
   type: 'CASUAL_LEAVE' | 'SICK_LEAVE' | 'BEREAVEMENT_LEAVE' | 'OPTIONAL_HOLIDAY' | 'BIRTHDAY_LEAVE';
-  startDate: string;
-  endDate: string;
+  /** A run of days ... */
+  startDate?: string;
+  endDate?: string;
+  /** ... or exact dates (they need not be next to each other). */
+  dates?: string[];
   half: boolean;
+  /** Which half a half day covers; the other half is worked. */
+  halfPart?: 'FIRST' | 'SECOND';
   managerInformed?: boolean;
   bereavementEventId?: string | null;
 }
@@ -182,10 +189,15 @@ export function useLeavePreview() {
 
 export function useApplyLeave() {
   const refresh = useRefreshAll();
-  return useMutation<{ applied: string[]; paid: number; lop: number; warning: string | null }, ApiError, LeaveInput>({
+  return useMutation<{ applied: string[]; earlier: string[]; paid: number; lop: number; warning: string | null }, ApiError, LeaveInput>({
     mutationFn: (b) => post('/leave/apply', b),
     onSuccess: refresh,
   });
+}
+
+export function useDeleteEarlierLeave() {
+  const refresh = useRefreshAll();
+  return useMutation<void, ApiError, string>({ mutationFn: (id) => del(`/leave/earlier/${id}`), onSuccess: refresh });
 }
 
 export function useAddBereavementEvent() {

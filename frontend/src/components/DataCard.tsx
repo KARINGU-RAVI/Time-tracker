@@ -31,7 +31,7 @@ const ROWS: Array<[keyof Counts, string]> = [
   ['holidays', 'Holidays'],
   ['workRules', 'Work rules'],
   ['ledgerEntries', 'Leave entries'],
-  ['bereavementEvents', 'Deaths in the family'],
+  ['bereavementEvents', 'Bereavement events'],
 ];
 
 const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong. Please try again.');
@@ -121,7 +121,7 @@ export function DataCard() {
         </Button>
         <input ref={picker} type="file" accept=".json,application/json" className="sr-only" aria-label="Choose backup file" onChange={(e) => chooseRestoreFile(e.target.files?.[0])} />
         <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => picker.current?.click()}>
-          <Upload size={16} aria-hidden /> {busy === 'validate' ? 'Checking…' : 'Bring back from a backup'}
+          <Upload size={16} aria-hidden /> {busy === 'validate' ? 'Checking…' : 'Restore from backup'}
         </Button>
       </div>
 
@@ -180,10 +180,10 @@ function RestoreDialog({ upload, onClose, onExportFirst }: { upload: { backup: u
   }
 
   return (
-    <Dialog open onOpenChange={(o) => { if (!o && state !== 'working') onClose(); }} title="Bring back from a backup" description={`Backup made ${check.exportedAt.slice(0, 10)}`}>
+    <Dialog open onOpenChange={(o) => { if (!o && state !== 'working') onClose(); }} title="Restore from backup" description={`Backup made ${check.exportedAt.slice(0, 10)}`}>
       {state === 'done' ? (
         <div className="flex flex-col gap-3">
-          <Banner tone="ok">Done. Your data is now the same as the backup.</Banner>
+          <Banner tone="ok">Restored. All your data now matches the backup.</Banner>
           <Button onClick={onClose}>Done</Button>
         </div>
       ) : (

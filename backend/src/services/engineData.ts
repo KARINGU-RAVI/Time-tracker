@@ -69,13 +69,13 @@ export async function loadRecords(
   userId: string,
   start: string,
   end: string,
-): Promise<{ records: RecordsByDate; stored: Record<string, { id: string; sessions: StoredSession[]; notes: string | null; managerInformed: boolean; bereavementEventId: string | null }> }> {
+): Promise<{ records: RecordsByDate; stored: Record<string, { id: string; sessions: StoredSession[]; notes: string | null; managerInformed: boolean; bereavementEventId: string | null; halfDayPart: 'FIRST' | 'SECOND' | null }> }> {
   const rows = await db.attendance.findMany({
     where: { userId, date: { gte: toDbDate(start), lte: toDbDate(end) } },
     include: { sessions: { orderBy: { inTime: 'asc' } } },
   });
   const records: RecordsByDate = {};
-  const stored: Record<string, { id: string; sessions: StoredSession[]; notes: string | null; managerInformed: boolean; bereavementEventId: string | null }> = {};
+  const stored: Record<string, { id: string; sessions: StoredSession[]; notes: string | null; managerInformed: boolean; bereavementEventId: string | null; halfDayPart: 'FIRST' | 'SECOND' | null }> = {};
   for (const r of rows) {
     const date = fromDbDate(r.date);
     const rec: AttendanceRecord = {
@@ -90,6 +90,7 @@ export async function loadRecords(
       sessions: r.sessions.map((s) => ({ id: s.id, inTime: s.inTime, outTime: s.outTime })),
       notes: r.notes,
       managerInformed: r.managerInformed,
+      halfDayPart: r.halfDayPart,
       bereavementEventId: r.bereavementEventId,
     };
   }

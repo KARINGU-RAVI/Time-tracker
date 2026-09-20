@@ -177,8 +177,8 @@ export default function Today() {
                     <div className="num text-xl font-semibold">{formatDuration(required)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-ink-soft">{overtime > 0 ? 'Extra time' : 'Remaining'}</div>
-                    <div className="num text-xl font-semibold" role="timer" aria-live="off" aria-label={overtime > 0 ? 'Extra time' : 'Time remaining'}>
+                    <div className="text-xs text-ink-soft">{overtime > 0 ? 'Overtime' : 'Remaining'}</div>
+                    <div className="num text-xl font-semibold" role="timer" aria-live="off" aria-label={overtime > 0 ? 'Overtime' : 'Time remaining'}>
                       {formatClockDuration(overtime > 0 ? figures.overtimeSeconds : figures.remainingSeconds)}
                     </div>
                   </div>
@@ -224,7 +224,7 @@ export default function Today() {
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={() => setAddOpen(true)}>
-              <Plus size={16} aria-hidden /> Add time by hand
+              <Plus size={16} aria-hidden /> Add time manually
             </Button>
           </div>
         </div>
@@ -232,7 +232,7 @@ export default function Today() {
         <div className="flex flex-col gap-4">
           <Card>
             <CardTitle right={inClock ? <span className="num text-xs text-ink-soft">since {inClock}</span> : undefined}>
-              Today&apos;s check-ins
+              Today&apos;s entries
             </CardTitle>
             <SessionList sessions={day.sessions} isToday nowMs={serverNow} />
           </Card>

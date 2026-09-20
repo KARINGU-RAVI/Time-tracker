@@ -134,7 +134,7 @@ describe('Today', () => {
       dashboard({ workedMinutes: 500, overtimeMinutes: 20, balanceMinutes: 20, live: { status: 'INSIDE', remainingMinutes: 0, expectedOutAt: null, expectedOutClock: null, ifCheckInNowOutClock: null } }),
     );
     renderToday();
-    expect(await screen.findByLabelText('Extra time')).toHaveTextContent(/^0:2\d:\d\d$/);
+    expect(await screen.findByLabelText('Overtime')).toHaveTextContent(/^0:2\d:\d\d$/);
     expect(screen.queryByLabelText('Time remaining')).not.toBeInTheDocument();
   });
 
