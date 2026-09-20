@@ -18,7 +18,7 @@ const STATUS_OPTIONS: Array<{ value: AttendanceStatus; label: string }> = [
   { value: 'WFH', label: 'WFH' },
   { value: 'CASUAL_LEAVE', label: 'Casual leave' },
   { value: 'SICK_LEAVE', label: 'Sick leave' },
-  { value: 'BEREAVEMENT_LEAVE', label: 'Death in family' },
+  { value: 'BEREAVEMENT_LEAVE', label: 'Bereavement' },
   { value: 'OPTIONAL_HOLIDAY', label: 'Optional holiday' },
   { value: 'BIRTHDAY_LEAVE', label: 'Birthday half-day' },
 ];
@@ -137,7 +137,7 @@ export default function DayDetail() {
               <Stat label="Required" value={formatDuration(day.requiredMinutes)} />
               <Stat label={day.isIncomplete ? 'Worked (counted)' : 'Worked'} value={formatDuration(day.workedMinutes)} />
               <Stat
-                label="Ahead or behind"
+                label="Balance"
                 value={day.balanceMinutes === null ? 'N/A' : formatDuration(day.balanceMinutes, { signed: true })}
                 tone={day.balanceMinutes === null ? undefined : day.balanceMinutes < 0 ? 'warn' : 'ok'}
               />
@@ -220,7 +220,7 @@ export default function DayDetail() {
             {status === 'BEREAVEMENT_LEAVE' && (
               <div className="mt-3">
                 <label htmlFor="event" className="text-sm font-medium text-ink-soft">
-                  Which death in the family
+                  Bereavement event
                 </label>
                 <select id="event" className={inputClass + ' mt-1'} value={eventId} onChange={(e) => setEventId(e.target.value)}>
                   <option value="">Choose an event</option>
@@ -241,7 +241,7 @@ export default function DayDetail() {
             {isLeave(status) && (
               <label className="mt-3 flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={informed} onChange={(e) => setInformed(e.target.checked)} />
-                I told my manager
+                Manager informed
               </label>
             )}
 

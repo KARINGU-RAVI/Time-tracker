@@ -60,8 +60,8 @@ describe('Leave balances', () => {
     expect(screen.getByText('Used').nextSibling).toHaveTextContent('5.00');
     expect(screen.getByText(/Next credit: \+1.75 on 1 Oct/)).toBeInTheDocument();
     expect(screen.getByText('1 of 2 remaining')).toBeInTheDocument();
-    expect(screen.getByText(/Up to 5 days each time/)).toBeInTheDocument();
-    expect(screen.getByText('Nothing added yet.')).toBeInTheDocument();
+    expect(screen.getByText(/Up to 5 days per event/)).toBeInTheDocument();
+    expect(screen.getByText('No events added yet.')).toBeInTheDocument();
   });
 
   it('shows the ledger with signs and a running balance', async () => {
@@ -115,7 +115,7 @@ describe('Applying leave', () => {
     expect(await navigator.clipboard.readText()).toBe(unpaid.managerMessage);
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
 
-    await user.click(screen.getByLabelText('I told my manager'));
+    await user.click(screen.getByLabelText('Manager informed'));
     await user.click(screen.getByRole('button', { name: 'Apply leave' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/apply', expect.objectContaining({ managerInformed: true })));
   });
@@ -134,7 +134,7 @@ describe('Applying leave', () => {
     const half = await screen.findByLabelText(/Half day/);
     expect(half).toBeEnabled();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('radio', { name: 'Death in family' }));
+    await user.click(screen.getByRole('radio', { name: 'Bereavement' }));
     expect(half).toBeDisabled();
     await user.click(screen.getByRole('radio', { name: 'Sick leave' }));
     expect(half).toBeEnabled();
@@ -166,8 +166,8 @@ describe('Bereavement', () => {
     open();
     expect(await screen.findByText(/Family member, 16 Sep: 2\/5 days/)).toBeInTheDocument();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('radio', { name: 'Death in family' }));
-    await user.selectOptions(screen.getByLabelText('Which death in the family'), 'e1');
+    await user.click(screen.getByRole('radio', { name: 'Bereavement' }));
+    await user.selectOptions(screen.getByLabelText('Bereavement event'), 'e1');
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/preview', applyBody({ type: 'BEREAVEMENT_LEAVE' })));
     await user.click(screen.getByRole('button', { name: 'Apply leave' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/apply', applyBody({ type: 'BEREAVEMENT_LEAVE', bereavementEventId: 'e1' })));

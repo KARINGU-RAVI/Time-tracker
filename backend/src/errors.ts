@@ -38,7 +38,7 @@ export function mapDbError(e: unknown): ApiError | null {
     return new ApiError(409, 'RULE_OVERLAP', 'This rule overlaps another rule version.');
   }
   if (text.includes('attendance_bereavement_link')) {
-    return new ApiError(400, 'BEREAVEMENT_EVENT_REQUIRED', 'Choose or add the death in the family first.');
+    return new ApiError(400, 'BEREAVEMENT_EVENT_REQUIRED', 'Choose or log a bereavement event first.');
   }
   if (text.includes('attendance_half_day_only_casual_sick')) {
     return new ApiError(400, 'HALF_DAY_NOT_ALLOWED', 'Only casual or sick leave can be a half day.');

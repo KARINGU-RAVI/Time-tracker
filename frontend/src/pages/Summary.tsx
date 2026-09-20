@@ -74,8 +74,8 @@ export default function Summary() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatCard label="Required" value={formatDuration(p.requiredMinutes)} />
             <StatCard label="Worked" value={formatDuration(p.workedMinutes)} />
-            <StatCard label="Ahead or behind" value={notStarted ? 'Not started' : formatDuration(p.balanceMinutes, { signed: true })} tone={notStarted ? undefined : p.balanceMinutes < 0 ? 'warn' : 'ok'} />
-            <StatCard label={mode === 'week' ? 'Extra time this week' : 'Extra time'} value={formatDuration(p.periodOvertimeMinutes)} />
+            <StatCard label="Balance" value={notStarted ? 'Not started' : formatDuration(p.balanceMinutes, { signed: true })} tone={notStarted ? undefined : p.balanceMinutes < 0 ? 'warn' : 'ok'} />
+            <StatCard label={mode === 'week' ? 'Weekly overtime' : 'Overtime'} value={formatDuration(p.periodOvertimeMinutes)} />
           </div>
           {notStarted && (
             <p className="flex items-center gap-2 text-sm text-ink-soft">
@@ -99,7 +99,7 @@ export default function Summary() {
                   <th className="px-2 py-3 font-medium">Status</th>
                   <th className="px-2 py-3 text-right font-medium">Worked</th>
                   <th className="px-2 py-3 text-right font-medium">Required</th>
-                  <th className="px-4 py-3 text-right font-medium">Ahead or behind</th>
+                  <th className="px-4 py-3 text-right font-medium">Balance</th>
                 </tr>
               </thead>
               <tbody>

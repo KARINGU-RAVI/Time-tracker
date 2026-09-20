@@ -9,7 +9,7 @@ import { useAddBereavementEvent, useApplyLeave, useLeave, useLeavePreview, type 
 const TYPES: Array<{ value: LeaveInput['type']; label: string }> = [
   { value: 'CASUAL_LEAVE', label: 'Casual leave' },
   { value: 'SICK_LEAVE', label: 'Sick leave' },
-  { value: 'BEREAVEMENT_LEAVE', label: 'Death in family' },
+  { value: 'BEREAVEMENT_LEAVE', label: 'Bereavement' },
   { value: 'OPTIONAL_HOLIDAY', label: 'Optional holiday' },
   { value: 'BIRTHDAY_LEAVE', label: 'Birthday half-day' },
 ];
@@ -136,10 +136,10 @@ export default function Leave() {
         </Card>
 
         <Card>
-          <div className="text-sm font-medium text-ink-soft">Leave for a death in the family</div>
-          <p className="mt-1 text-xs text-ink-soft">Up to {d.bereavement.maxDaysPerEvent} days each time, separate from your yearly leave.</p>
+          <div className="text-sm font-medium text-ink-soft">Bereavement leave</div>
+          <p className="mt-1 text-xs text-ink-soft">Up to {d.bereavement.maxDaysPerEvent} days per event, separate from annual leave. You can take them on any dates, not only in a row.</p>
           {d.bereavement.events.length === 0 ? (
-            <p className="mt-2 text-sm">Nothing added yet.</p>
+            <p className="mt-2 text-sm">No events added yet.</p>
           ) : (
             <ul className="mt-2 text-sm">
               {d.bereavement.events.map((e) => (
@@ -204,7 +204,7 @@ export default function Leave() {
 
         {type === 'BEREAVEMENT_LEAVE' && (
           <div className="mt-3">
-            <Field label="Which death in the family" htmlFor="leave-event">
+            <Field label="Bereavement event" htmlFor="leave-event">
               <select id="leave-event" className={inputClass} value={eventId} onChange={(e) => setEventId(e.target.value)}>
                 <option value="">Choose an event</option>
                 {d.bereavement.events.map((e) => (
@@ -238,7 +238,7 @@ export default function Leave() {
               </Button>
               <label className="mt-3 flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={informed} onChange={(e) => setInformed(e.target.checked)} />
-                I told my manager
+                Manager informed
               </label>
             </div>
           )}
@@ -281,7 +281,7 @@ export default function Leave() {
               <th className="py-2 font-medium">Date</th>
               <th className="py-2 font-medium">Entry</th>
               <th className="py-2 text-right font-medium">Change</th>
-              <th className="py-2 text-right font-medium">Left</th>
+              <th className="py-2 text-right font-medium">Balance</th>
             </tr>
           </thead>
           <tbody>

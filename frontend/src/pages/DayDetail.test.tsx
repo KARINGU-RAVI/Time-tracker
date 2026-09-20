@@ -61,7 +61,7 @@ describe('DayDetail', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('radio', { name: 'Casual leave' }));
     expect(half).toBeEnabled();
-    await user.click(screen.getByRole('radio', { name: 'Death in family' }));
+    await user.click(screen.getByRole('radio', { name: 'Bereavement' }));
     expect(half).toBeDisabled();
   });
 
@@ -72,7 +72,7 @@ describe('DayDetail', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('radio', { name: 'Casual leave' }));
     await user.click(screen.getByLabelText(/Half day/));
-    await user.click(screen.getByLabelText('I told my manager'));
+    await user.click(screen.getByLabelText('Manager informed'));
     await user.type(screen.getByLabelText('Notes'), '  Doctor  ');
     await user.click(screen.getByRole('button', { name: 'Save day' }));
     await waitFor(() =>
@@ -117,8 +117,8 @@ describe('DayDetail', () => {
   it('bereavement needs an event, and points to the Leave screen when there are none', async () => {
     serve(makeDetail({}, { date: '2026-09-17' }));
     open();
-    await userEvent.setup().click(await screen.findByRole('radio', { name: 'Death in family' }));
-    expect(screen.getByLabelText('Which death in the family')).toBeInTheDocument();
+    await userEvent.setup().click(await screen.findByRole('radio', { name: 'Bereavement' }));
+    expect(screen.getByLabelText('Bereavement event')).toBeInTheDocument();
     expect(screen.getByText(/Log one on the Leave screen/)).toBeInTheDocument();
   });
 
@@ -127,8 +127,8 @@ describe('DayDetail', () => {
     api.put.mockResolvedValue(makeDetail());
     open();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('radio', { name: 'Death in family' }));
-    await user.selectOptions(await screen.findByLabelText('Which death in the family'), 'e1');
+    await user.click(await screen.findByRole('radio', { name: 'Bereavement' }));
+    await user.selectOptions(await screen.findByLabelText('Bereavement event'), 'e1');
     await user.click(screen.getByRole('button', { name: 'Save day' }));
     await waitFor(() => expect(api.put).toHaveBeenCalledWith('/attendance/2026-09-17', expect.objectContaining({ status: 'BEREAVEMENT_LEAVE', bereavementEventId: 'e1' })));
   });
