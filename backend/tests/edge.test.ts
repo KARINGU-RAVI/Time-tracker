@@ -69,7 +69,7 @@ describe('spec edge cases at API level', () => {
     clock.now = at('2026-09-21', '09:00') + 50_000;
     const tooSoon = await request(app).post('/api/attendance/check-out');
     expect(tooSoon.status).toBe(409);
-    expect(tooSoon.body.error).toMatchObject({ code: 'TOO_SHORT', message: 'OUT must be after IN.' });
+    expect(tooSoon.body.error).toMatchObject({ code: 'TOO_SHORT', message: 'You checked in less than a minute ago. Wait a moment, then check out.' });
 
     clock.now = at('2026-09-21', '10:00');
     expect((await request(app).post('/api/attendance/check-out')).status).toBe(200);

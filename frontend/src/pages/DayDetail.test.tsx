@@ -50,7 +50,18 @@ describe('DayDetail', () => {
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Add OUT time' }));
     expect(await screen.findByRole('heading', { name: 'Edit session' })).toBeInTheDocument();
     expect(screen.getByLabelText('IN')).toHaveValue('16:45');
-    expect(screen.getByLabelText('Still inside (no OUT yet)')).toBeChecked();
+    // The person is here to add the OUT time, so "Still inside" starts un-ticked and OUT is ready to type.
+    expect(screen.getByLabelText('Still inside (no OUT yet)')).not.toBeChecked();
+    expect(screen.getByLabelText('OUT')).toBeEnabled();
+    expect(screen.getByLabelText('OUT')).toHaveFocus();
+  });
+
+  it('editing an unclosed entry from its pencil still starts as "Still inside" (only the "Add OUT time" button changes that)', async () => {
+    serve();
+    open();
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Edit session 16:45' }));
+    expect(await screen.findByLabelText('Still inside (no OUT yet)')).toBeChecked();
+    expect(screen.getByLabelText('OUT')).toBeDisabled();
   });
 
   it('only allows a half day for casual or sick leave', async () => {

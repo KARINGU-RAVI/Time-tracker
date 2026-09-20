@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, CircleHelp, Clock, Home, Moon, Palmtree, Star } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { toneClasses, type IconName, type StatusInfo, type Tone } from '@/lib/status';
+import { toneClasses, type IconName, type StatusInfo } from '@/lib/status';
 
 const icons = {
   check: CheckCircle2,
@@ -28,8 +28,4 @@ export function StatusPill({ status, className, pulse }: { status: StatusInfo; c
       {status.label}
     </span>
   );
-}
-
-export function tonePill(tone: Tone, label: string, icon: IconName) {
-  return { label, tone, icon } satisfies StatusInfo;
 }

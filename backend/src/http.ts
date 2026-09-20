@@ -45,8 +45,6 @@ export function parseInstant(input: string): number {
   return floorToMinute(ms);
 }
 
-export const instantStr = z.string().min(1);
-
 export function paramDate(value: unknown): string {
   return dateStr.parse(value);
 }

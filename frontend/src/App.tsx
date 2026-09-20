@@ -79,7 +79,8 @@ function Gate() {
 
   if (pathname === '/verify-email' || pathname === '/reset-password' || pathname === '/privacy') return <EmailLinkRoutes />;
 
-  if (session.isLoading) {
+  // Only the very first load shows the placeholder. A re-check (after a wrong password, say) must not rebuild the page.
+  if (session.isLoading && session.error === null) {
     return (
       <div className="p-6" aria-busy="true">
         <Skeleton className="h-10 w-1/2" />

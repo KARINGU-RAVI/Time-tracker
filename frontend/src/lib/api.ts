@@ -57,7 +57,11 @@ http.interceptors.response.use(
   (e) => {
     const err = toApiError(e);
     // 401: the session ended. SETUP_REQUIRED: the account still has to finish setup. Either way, re-check who is signed in.
-    if ((err.status === 401 || err.code === 'SETUP_REQUIRED') && onUnauthorized) onUnauthorized();
+    // A 401 from the sign-in and password forms is different: it just means "wrong email or password", and the person is
+    // still looking at that form. Re-checking the session there would rebuild the page and wipe the form and its error message.
+    const url = (e as { config?: { url?: string } }).config?.url ?? '';
+    const isAuthForm = url.startsWith('/auth/') && url !== '/auth/me';
+    if (((err.status === 401 && !isAuthForm) || err.code === 'SETUP_REQUIRED') && onUnauthorized) onUnauthorized();
     return Promise.reject(err);
   },
 );

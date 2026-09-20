@@ -16,6 +16,8 @@ interface Props {
   session?: Session;
   /** Pre-fill IN for a new session (for example the current time). */
   defaultIn?: string;
+  /** Opened from "Add OUT time": the person is adding the OUT, so "Still inside" starts un-ticked and OUT is ready to type. */
+  askForOut?: boolean;
 }
 
 const toMinutes = (hhmm: string): number | null => {
@@ -23,7 +25,7 @@ const toMinutes = (hhmm: string): number | null => {
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 };
 
-export function AddSessionDialog({ date, open, onOpenChange, session, defaultIn }: Props) {
+export function AddSessionDialog({ date, open, onOpenChange, session, defaultIn, askForOut }: Props) {
   const add = useAddSession(date);
   const update = useUpdateSession();
   const editing = Boolean(session);
@@ -41,7 +43,7 @@ export function AddSessionDialog({ date, open, onOpenChange, session, defaultIn 
     if (session) {
       setIn(session.inClock);
       setOut(session.outClock ?? '');
-      setStillInside(session.outTime === null);
+      setStillInside(session.outTime === null && !askForOut);
       setNextDay(session.outTime !== null && istDateOf(Date.parse(session.outTime)) !== date);
     } else {
       setIn(defaultIn ?? '');
@@ -93,6 +95,7 @@ export function AddSessionDialog({ date, open, onOpenChange, session, defaultIn 
             <input
               id="out-time"
               type="time"
+              autoFocus={askForOut}
               disabled={stillInside}
               className={inputClass + ' text-2xl font-semibold disabled:opacity-40'}
               value={outTime}
