@@ -292,8 +292,8 @@ export default function Setup() {
               {(a) => <TextInput {...a} value={form.name} onChange={(e) => set('name', e.target.value)} autoComplete="name" maxLength={80} />}
             </Field>
             <Field label="Employee ID (optional)">{(a) => <TextInput {...a} value={form.employeeId} onChange={(e) => set('employeeId', e.target.value)} maxLength={40} />}</Field>
-            <Field label="Designation (optional)">{(a) => <TextInput {...a} value={form.designation} onChange={(e) => set('designation', e.target.value)} maxLength={80} />}</Field>
-            <Field label="Business unit (optional)">{(a) => <TextInput {...a} value={form.businessUnit} onChange={(e) => set('businessUnit', e.target.value)} maxLength={80} />}</Field>
+            <Field label="Job title (optional)">{(a) => <TextInput {...a} value={form.designation} onChange={(e) => set('designation', e.target.value)} maxLength={80} />}</Field>
+            <Field label="Department (optional)">{(a) => <TextInput {...a} value={form.businessUnit} onChange={(e) => set('businessUnit', e.target.value)} maxLength={80} />}</Field>
           </>
         )}
 
@@ -337,7 +337,7 @@ export default function Setup() {
               <span className="flex items-center gap-2 text-ink-soft"><Lock size={14} aria-hidden />India Standard Time (UTC+05:30)</span>
             </div>
             <p className="-mt-2 text-xs text-ink-soft">Other time zones are not supported yet.</p>
-            <Field label="Start tracking from" hint="Leave and hours before this date come from your opening balances in the next step.">
+            <Field label="Start counting from" hint="Anything before this date comes from what you enter in the next step.">
               {(a) => <TextInput {...a} type="date" value={form.trackingStartDate} min={`${d.today.slice(0, 4)}-01-01`} max={`${d.today.slice(0, 4)}-12-31`} onChange={(e) => set('trackingStartDate', e.target.value)} />}
             </Field>
           </>
@@ -347,30 +347,30 @@ export default function Setup() {
           <>
             <h2 className="text-sm font-semibold">Yearly leave</h2>
             <div className="grid grid-cols-2 gap-3">
-              <NumberField label="Annual leave per year" value={form.annualEntitlement} onChange={(v) => set('annualEntitlement', v)} suffix="days" />
-              <NumberField label="Credited each month" value={form.accrualPerMonth} onChange={(v) => set('accrualPerMonth', v)} suffix="days" />
-              <NumberField label="Maximum carried to next year" value={form.carryForwardCap} onChange={(v) => set('carryForwardCap', v)} suffix="days" />
-              <NumberField label="Optional holidays per year" value={form.optionalQuota} onChange={(v) => set('optionalQuota', v)} />
+              <NumberField label="Yearly leave (casual and sick)" value={form.annualEntitlement} onChange={(v) => set('annualEntitlement', v)} suffix="days" />
+              <NumberField label="Leave added each month" value={form.accrualPerMonth} onChange={(v) => set('accrualPerMonth', v)} suffix="days" />
+              <NumberField label="Most leave you can keep for next year" value={form.carryForwardCap} onChange={(v) => set('carryForwardCap', v)} suffix="days" />
+              <NumberField label="Optional holidays each year" value={form.optionalQuota} onChange={(v) => set('optionalQuota', v)} />
             </div>
-            <NumberField label="Bereavement leave per event (days)" value={form.bereavementDaysPerEvent} onChange={(v) => set('bereavementDaysPerEvent', v)} />
-            <h2 className="mt-2 text-sm font-semibold">Your balance today</h2>
-            <NumberField label="Carried forward from last year" value={form.carriedForward} onChange={(v) => set('carriedForward', v)} suffix="days" />
-            <NumberField label="Annual leave taken this year so far" value={form.annualUsedSoFar} onChange={(v) => set('annualUsedSoFar', v)} suffix="days" hint="Sick and casual leave taken before your tracking start date." />
-            <NumberField label="Optional leave taken this year so far" value={form.optionalUsedSoFar} onChange={(v) => set('optionalUsedSoFar', v)} />
-            <NumberField label="Birthday half-day allowance per year" value={form.birthdayQuota} onChange={(v) => set('birthdayQuota', v)} suffix="days" hint="Half a day is usual. It is separate from annual leave and does not carry over." />
+            <NumberField label="Leave for a death in the family (days each time)" value={form.bereavementDaysPerEvent} onChange={(v) => set('bereavementDaysPerEvent', v)} />
+            <h2 className="mt-2 text-sm font-semibold">Your leave today</h2>
+            <NumberField label="Leave left over from last year" value={form.carriedForward} onChange={(v) => set('carriedForward', v)} suffix="days" />
+            <NumberField label="Leave already taken this year" value={form.annualUsedSoFar} onChange={(v) => set('annualUsedSoFar', v)} suffix="days" hint="Sick and casual leave taken before the date you start counting." />
+            <NumberField label="Optional holidays already taken this year" value={form.optionalUsedSoFar} onChange={(v) => set('optionalUsedSoFar', v)} />
+            <NumberField label="Birthday half-day each year" value={form.birthdayQuota} onChange={(v) => set('birthdayQuota', v)} suffix="days" hint="Usually half a day. It is separate from your yearly leave and cannot be kept for next year." />
             <label className="flex items-start gap-3 text-sm">
               <input type="checkbox" checked={form.birthdayTaken && num(form.birthdayQuota) > 0} disabled={num(form.birthdayQuota) <= 0} onChange={(e) => set('birthdayTaken', e.target.checked)} className="mt-1" />
               <span>I have already taken my birthday half-day this year</span>
             </label>
-            <NumberField label="First month you earned leave this year" value={form.creditsFromMonth} onChange={(v) => set('creditsFromMonth', v)} hint="1 for January. Use a later month if you joined this year." />
+            <NumberField label="Month you started getting leave this year" value={form.creditsFromMonth} onChange={(v) => set('creditsFromMonth', v)} hint="Use 1 for January. If you joined this year, use the month you joined." />
             {previewError && <Banner tone="bad">{previewError}</Banner>}
             <div className="rounded-2xl border border-primary/30 bg-primary-soft/40 p-4" aria-live="polite">
-              <p className="text-sm font-semibold">Your balance after setup</p>
+              <p className="text-sm font-semibold">Your leave after setup</p>
               {p ? (
                 <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
                   <dt className="text-ink-soft">Annual leave</dt>
                   <dd className="text-right text-lg font-semibold tabular-nums">{days(p.annual.balance)}</dd>
-                  <dt className="text-ink-soft">Optional leave</dt>
+                  <dt className="text-ink-soft">Optional holidays</dt>
                   <dd className="text-right text-lg font-semibold tabular-nums">{p.optional.remaining} left</dd>
                   <dt className="text-ink-soft">Birthday half-day</dt>
                   <dd className="text-right text-lg font-semibold tabular-nums">{p.birthday.remaining} left</dd>
@@ -378,7 +378,7 @@ export default function Setup() {
               ) : (
                 <p className="mt-2 text-sm text-ink-soft">Checking…</p>
               )}
-              <p className="mt-2 text-xs text-ink-soft">Updates as you type. Bereavement, birthday and other separate leave do not count here.</p>
+              <p className="mt-2 text-xs text-ink-soft">Updates as you type. Leave for a death in the family, birthday and other separate leave are not counted here.</p>
             </div>
           </>
         )}
@@ -406,7 +406,7 @@ export default function Setup() {
                     <input type="file" accept=".csv,text/csv" className="sr-only" aria-label="Choose CSV file" onChange={(e) => void chooseFile(e.target.files?.[0])} />
                   </label>
                   <button type="button" className="text-sm font-medium text-primary" onClick={() => saveFile(HOLIDAY_TEMPLATE, 'holidays-template.csv', 'text/csv')}>
-                    Download the template
+                    Download a sample file
                   </button>
                 </div>
                 {csvErrors.length > 0 && (
@@ -441,7 +441,7 @@ export default function Setup() {
             {[
               [0, 'Profile', [form.name.trim(), [form.employeeId, form.designation, form.businessUnit].filter(Boolean).join(' · ')].filter(Boolean)],
               [1, 'Work hours', [`${dur(minutes(form.dailyH, form.dailyM))} a day, ${dur(minutes(form.weeklyH, form.weeklyM))} a week`, `${form.workingDays.map((n) => DAY_NAMES[n]).join(', ')}. Week starts ${form.weekStartsOn === 1 ? 'Monday' : 'Sunday'}. ${startNote}`]],
-              [2, 'Leave', [p ? `Annual leave ${days(p.annual.balance)}, optional ${p.optional.remaining} left` : '', `${form.accrualPerMonth} days credited each month, up to ${form.carryForwardCap} carried forward`]],
+              [2, 'Leave', [p ? `Yearly leave ${days(p.annual.balance)}, optional holidays ${p.optional.remaining} left` : '', `${form.accrualPerMonth} days added each month, up to ${form.carryForwardCap} can be kept for next year`]],
               [3, 'Holidays', [form.holidaySource === 'company' ? `Company calendar (${d.holidays.companyCount})` : form.holidaySource === 'list' ? `${form.holidayList.length} holidays from your file` : 'None yet']],
             ].map(([i, title, lines]) => (
               <div key={title as string} className="flex items-start justify-between gap-3 border-b border-line pb-3 last:border-0">

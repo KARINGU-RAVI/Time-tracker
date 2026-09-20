@@ -12,7 +12,7 @@ import { dayStatus, toneClasses } from '@/lib/status';
 import type { Day } from '@/lib/types';
 
 const LEGEND = [
-  { label: 'Target met', tone: 'ok', icon: 'check' },
+  { label: 'Hours done', tone: 'ok', icon: 'check' },
   { label: 'Short', tone: 'warn', icon: 'clock' },
   { label: 'WFH', tone: 'wfh', icon: 'home' },
   { label: 'Leave', tone: 'leave', icon: 'leave' },

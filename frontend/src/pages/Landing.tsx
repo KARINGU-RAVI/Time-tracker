@@ -4,9 +4,9 @@ import { Logo } from '@/components/Logo';
 import { Card } from '@/components/ui/primitives';
 
 const FEATURES = [
-  { icon: Clock3, title: 'Record your day', text: 'Check in and out as often as you like, or add sessions by hand. See what you have worked, what is left, and when you can leave.' },
-  { icon: Scale, title: 'Know your balance', text: 'Weekly and monthly totals against your required hours, with overtime and shortfall worked out for you.' },
-  { icon: CalendarDays, title: 'Leave and holidays', text: 'Monthly leave credits, optional holidays, carry-forward and a holiday calendar, so you always know what you have left.' },
+  { icon: Clock3, title: 'Record your day', text: 'Check in and out as often as you like, or add times by hand. See what you have worked, what is left, and when you can leave.' },
+  { icon: Scale, title: 'Know your balance', text: 'Weekly and monthly totals against the hours you need to work, with extra time and missing time worked out for you.' },
+  { icon: CalendarDays, title: 'Leave and holidays', text: 'Leave added every month, optional holidays and a holiday calendar, so you always know how much leave you have left.' },
   { icon: Lock, title: 'Private to you', text: 'Your records belong to your account alone. Download a backup or delete everything whenever you want.' },
 ];
 
@@ -29,7 +29,7 @@ export default function Landing() {
           <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">Track your working hours, leave and balance.</h1>
           <p className="text-base leading-relaxed text-ink-soft">
             Office Hours is a personal attendance and leave tracker for people who work set hours. You record when you start and stop, and the app works
-            out the rest: hours worked today and this week, hours still to do, overtime, monthly leave credits, holidays and your remaining leave balance.
+            out the rest: hours worked today and this week, hours still to do, extra time, monthly leave credits, holidays and your remaining leave balance.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link to="/signin?mode=signup" className="inline-flex h-12 items-center rounded-full bg-primary px-6 font-semibold text-on-primary hover:bg-primary/90">

@@ -41,7 +41,7 @@ describe('Summary', () => {
     expect(screen.getByText('32h 00m')).toBeInTheDocument();
     expect(screen.getByText('30h 20m')).toBeInTheDocument();
     expect(screen.getByText('-1h 40m')).toBeInTheDocument();
-    expect(screen.getByText('Weekly overtime')).toBeInTheDocument();
+    expect(screen.getByText('Extra time this week')).toBeInTheDocument();
     expect(screen.getByText(/Required is 32h 00m because of 1 leave\/holiday day/)).toBeInTheDocument();
     expect(screen.getByText(/14 Sep .* 20 Sep 2026/)).toBeInTheDocument();
   });
@@ -54,7 +54,7 @@ describe('Summary', () => {
     expect(rows).toHaveLength(8);
     const mon = within(rows[1]!);
     expect(mon.getByText('Mon 14 Sep')).toBeInTheDocument();
-    expect(mon.getByText('Target met')).toBeInTheDocument();
+    expect(mon.getByText('Hours done')).toBeInTheDocument();
     expect(mon.getByText('8h 10m')).toBeInTheDocument();
     expect(mon.getByText('+10m')).toBeInTheDocument();
 
@@ -82,7 +82,7 @@ describe('Summary', () => {
     expect(await screen.findByText('Working 4')).toBeInTheDocument();
     expect(screen.getByText('Leave 1')).toBeInTheDocument();
     expect(screen.getByText('Weekly off 2')).toBeInTheDocument();
-    expect(screen.getByText(/Only the weekly balance counts/)).toBeInTheDocument();
+    expect(screen.getByText(/Only the total for the week counts/)).toBeInTheDocument();
   });
 
   it('moves a week back', async () => {

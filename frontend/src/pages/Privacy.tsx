@@ -51,7 +51,7 @@ export default function Privacy() {
             <li>Your email address and name (from Google, or what you type).</li>
             <li>If you sign up with a password: a scrambled (hashed) form of it. We never store or see the password itself.</li>
             <li>If you use Google sign-in: your Google account&rsquo;s identifier, email, name and whether the email is verified. Nothing else from Google.</li>
-            <li>Everything you enter: check-in and check-out times, leave, holidays, work rules, opening balances, your employee ID, designation and business unit if you give them.</li>
+            <li>Everything you enter: check-in and check-out times, leave, holidays, work rules, the leave you already had, your employee ID, designation and business unit if you give them.</li>
             <li>A history of changes you make to your entries, so mistakes can be traced.</li>
             <li>For abuse protection: the network address of sign-in and sign-up attempts, kept for at most two days, and a scrambled form of the email address tried.</li>
           </ul>
@@ -95,7 +95,7 @@ export default function Privacy() {
             <li>All traffic uses HTTPS.</li>
             <li>Passwords are hashed with a slow, salted algorithm; the sign-in cookie cannot be read by page scripts.</li>
             <li>Every request is checked against your account, so one user can never read or change another user&rsquo;s records.</li>
-            <li>Repeated wrong passwords lock an account for a short time, and sign-up and reset requests are rate limited.</li>
+            <li>Repeated wrong passwords lock an account for a short time, and sign-up and reset requests are limited.</li>
           </ul>
           <p>No system is perfectly secure, and we cannot promise it will never be compromised.</p>
         </Section>

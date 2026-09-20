@@ -18,7 +18,7 @@ interface Props {
 /** Sessions in order, with the time spent outside shown between them. */
 export function SessionList({ sessions, isToday, nowMs, onEdit, onDelete }: Props) {
   if (sessions.length === 0) {
-    return <p className="py-3 text-sm text-ink-soft">No sessions recorded.</p>;
+    return <p className="py-3 text-sm text-ink-soft">No entries yet.</p>;
   }
   return (
     <ul className="flex flex-col gap-2">

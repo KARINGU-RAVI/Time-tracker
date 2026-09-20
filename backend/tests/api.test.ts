@@ -426,7 +426,7 @@ describe('access control and input handling', () => {
 describe('before the tracking start date', () => {
   it('refuses to record anything, with a clear message', async () => {
     const { app } = await setup(at('2026-08-31', '09:00')); // tracking starts 2026-09-01
-    const expected = 'Tracking starts on 1 Sep 2026. Nothing before that date is counted.';
+    const expected = 'Counting starts on 1 Sep 2026. Nothing before that date is counted.';
 
     const checkIn = await request(app).post('/api/attendance/check-in');
     expect(checkIn.status).toBe(400);

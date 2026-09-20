@@ -81,7 +81,7 @@ export function AddSessionDialog({ date, open, onOpenChange, session, defaultIn 
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={editing ? 'Edit session' : 'Add session'}
+      title={editing ? 'Edit session' : 'Add time entry'}
       description={prettyDate(date)}
     >
       <form onSubmit={submit} className="flex flex-col gap-4">

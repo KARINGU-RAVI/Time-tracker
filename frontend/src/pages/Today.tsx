@@ -51,7 +51,7 @@ export default function Today() {
           <p className="text-sm text-ink-soft">{prettyDate(day.date)}</p>
         </header>
         <Card className="py-10 text-center">
-          <p className="text-lg font-semibold">Tracking starts on {prettyDate(data.trackingStartDate)}</p>
+          <p className="text-lg font-semibold">Counting starts on {prettyDate(data.trackingStartDate)}</p>
           <p className="mt-1 text-sm text-ink-soft">Nothing before that date is counted, so there is nothing to record today.</p>
         </Card>
         <Link to="/leave">
@@ -93,7 +93,7 @@ export default function Today() {
         : live.status === 'OUTSIDE'
           ? { label: 'Outside', tone: 'warn', icon: 'clock' }
           : live.status === 'COMPLETED' || (worked >= required && day.sessionCount > 0)
-            ? { label: 'Target met', tone: 'ok', icon: 'check' }
+            ? { label: 'Hours done', tone: 'ok', icon: 'check' }
             : { label: 'Not checked in', tone: 'neutral', icon: 'dot' }
       : null;
 
@@ -141,8 +141,8 @@ export default function Today() {
       )}
       {data.leave.yearEnd && data.leave.yearEnd.willLapse > 0 && (
         <Banner tone="warn">
-          {data.leave.yearEnd.balance.toFixed(2)} leaves left. Only {data.leave.yearEnd.carryForward.toFixed(2)} carry forward,{' '}
-          {data.leave.yearEnd.willLapse.toFixed(2)} will lapse.
+          {data.leave.yearEnd.balance.toFixed(2)} leave days left. Only {data.leave.yearEnd.carryForward.toFixed(2)} can be kept for next year,{' '}
+          {data.leave.yearEnd.willLapse.toFixed(2)} will be lost.
         </Banner>
       )}
       {actionError && (
@@ -177,13 +177,13 @@ export default function Today() {
                     <div className="num text-xl font-semibold">{formatDuration(required)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-ink-soft">{overtime > 0 ? 'Overtime' : 'Remaining'}</div>
-                    <div className="num text-xl font-semibold" role="timer" aria-live="off" aria-label={overtime > 0 ? 'Overtime' : 'Time remaining'}>
+                    <div className="text-xs text-ink-soft">{overtime > 0 ? 'Extra time' : 'Remaining'}</div>
+                    <div className="num text-xl font-semibold" role="timer" aria-live="off" aria-label={overtime > 0 ? 'Extra time' : 'Time remaining'}>
                       {formatClockDuration(overtime > 0 ? figures.overtimeSeconds : figures.remainingSeconds)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-ink-soft">Expected OUT</div>
+                    <div className="text-xs text-ink-soft">You can leave at</div>
                     <div className="num text-xl font-semibold">
                       {day.isInside && remaining > 0 ? live.expectedOutClock : '–'}
                     </div>
@@ -191,7 +191,7 @@ export default function Today() {
                 </div>
                 {day.isInside && openSession && (
                   <p className="mt-4 text-center text-sm text-ink-soft">
-                    This session <span className="num font-semibold text-ink" role="timer" aria-live="off" aria-label="This session">{formatClockDuration(figures.sessionSeconds)}</span>
+                    This check-in <span className="num font-semibold text-ink" role="timer" aria-live="off" aria-label="This check-in">{formatClockDuration(figures.sessionSeconds)}</span>
                     {' '}· since <span className="num">{openSession.inClock}</span>
                   </p>
                 )}
@@ -200,7 +200,7 @@ export default function Today() {
                 </p>
                 {!day.isInside && remaining > 0 && live.ifCheckInNowOutClock && (
                   <p className="mt-2 text-center text-xs text-ink-soft">
-                    If you check in now, expected OUT is <span className="num font-medium">{live.ifCheckInNowOutClock}</span>.
+                    If you check in now, you can leave at <span className="num font-medium">{live.ifCheckInNowOutClock}</span>.
                   </p>
                 )}
               </>
@@ -208,7 +208,7 @@ export default function Today() {
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <StatusPill status={status} />
                 <p className="text-lg font-semibold">{status.label === 'Holiday' ? 'No work today' : dayMessage(0, 0)}</p>
-                <p className="text-sm text-ink-soft">Nothing is required, and no missing-hours warning applies.</p>
+                <p className="text-sm text-ink-soft">No hours are needed today, so nothing is missing.</p>
               </div>
             )}
           </Card>
@@ -224,7 +224,7 @@ export default function Today() {
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={() => setAddOpen(true)}>
-              <Plus size={16} aria-hidden /> Add session manually
+              <Plus size={16} aria-hidden /> Add time by hand
             </Button>
           </div>
         </div>
@@ -232,7 +232,7 @@ export default function Today() {
         <div className="flex flex-col gap-4">
           <Card>
             <CardTitle right={inClock ? <span className="num text-xs text-ink-soft">since {inClock}</span> : undefined}>
-              Today&apos;s sessions
+              Today&apos;s check-ins
             </CardTitle>
             <SessionList sessions={day.sessions} isToday nowMs={serverNow} />
           </Card>

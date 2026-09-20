@@ -129,7 +129,7 @@ export async function ensureLedger(db: Db, userId: string, cfg: UserConfig, asOf
   // An account that has never had a birthday allowance (made before the feature, or restored from an older backup) gets one.
   if (birthdayQuota > 0 && !entries.some((e) => e.pool === 'BIRTHDAY')) {
     await savePolicyEntries(db, userId, [
-      { pool: 'BIRTHDAY', type: 'GRANT', days: birthdayQuota, effectiveDate: `${firstYear}-01-01`, note: `Birthday half-day allowance for ${firstYear}` },
+      { pool: 'BIRTHDAY', type: 'GRANT', days: birthdayQuota, effectiveDate: `${firstYear}-01-01`, note: `Birthday half-day for ${firstYear}` },
     ]);
     entries = await loadLedger(db, userId);
   }
@@ -148,19 +148,19 @@ export async function ensureLedger(db: Db, userId: string, cfg: UserConfig, asOf
       const lapse = yearEndLapse(annual, cap);
       await savePolicyEntries(db, userId, [
         ...(lapse > 0
-          ? [{ pool: 'ANNUAL' as const, type: 'LAPSE' as const, days: -lapse, effectiveDate: yearEnd, note: `Above the ${cap}-day carry-forward cap` }]
+          ? [{ pool: 'ANNUAL' as const, type: 'LAPSE' as const, days: -lapse, effectiveDate: yearEnd, note: `More than the ${cap} days you can keep` }]
           : []),
         ...(optional > 0
-          ? [{ pool: 'OPTIONAL' as const, type: 'LAPSE' as const, days: -optional, effectiveDate: yearEnd, note: 'Unused optional leave lapses' }]
+          ? [{ pool: 'OPTIONAL' as const, type: 'LAPSE' as const, days: -optional, effectiveDate: yearEnd, note: 'Unused optional holidays are lost at year end' }]
           : []),
         ...(quota > 0
-          ? [{ pool: 'OPTIONAL' as const, type: 'GRANT' as const, days: quota, effectiveDate: `${y + 1}-01-01`, note: `Optional leave quota for ${y + 1}` }]
+          ? [{ pool: 'OPTIONAL' as const, type: 'GRANT' as const, days: quota, effectiveDate: `${y + 1}-01-01`, note: `Optional holidays for ${y + 1}` }]
           : []),
         ...(birthday > 0
-          ? [{ pool: 'BIRTHDAY' as const, type: 'LAPSE' as const, days: -birthday, effectiveDate: yearEnd, note: 'Unused birthday half-day lapses' }]
+          ? [{ pool: 'BIRTHDAY' as const, type: 'LAPSE' as const, days: -birthday, effectiveDate: yearEnd, note: 'Unused birthday half-day is lost at year end' }]
           : []),
         ...(birthdayQuota > 0
-          ? [{ pool: 'BIRTHDAY' as const, type: 'GRANT' as const, days: birthdayQuota, effectiveDate: `${y + 1}-01-01`, note: `Birthday half-day allowance for ${y + 1}` }]
+          ? [{ pool: 'BIRTHDAY' as const, type: 'GRANT' as const, days: birthdayQuota, effectiveDate: `${y + 1}-01-01`, note: `Birthday half-day for ${y + 1}` }]
           : []),
       ]);
       entries = await loadLedger(db, userId);

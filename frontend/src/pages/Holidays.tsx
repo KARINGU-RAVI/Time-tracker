@@ -52,7 +52,7 @@ export default function Holidays() {
           <Upload size={16} aria-hidden /> Import from file
         </Button>
         <Button size="sm" variant="ghost" onClick={downloadTemplate}>
-          <Download size={16} aria-hidden /> Download template
+          <Download size={16} aria-hidden /> Download a sample file
         </Button>
       </div>
 

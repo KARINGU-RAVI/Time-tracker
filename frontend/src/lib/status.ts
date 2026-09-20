@@ -30,11 +30,11 @@ export function dayStatus(d: Day): StatusInfo {
     case 'OPTIONAL_HOLIDAY':
       return { label: 'Optional holiday', tone: 'holiday', icon: 'star' };
     case 'BEREAVEMENT':
-      return { label: 'Bereavement', tone: 'leave', icon: 'leave' };
+      return { label: 'Death in family', tone: 'leave', icon: 'leave' };
     case 'BIRTHDAY_HALF_DAY':
       return { label: 'Birthday half-day', tone: 'leave', icon: 'leave' };
     case 'BEFORE_TRACKING':
-      return { label: 'Not tracked', tone: 'neutral', icon: 'dot' };
+      return { label: 'Not counted', tone: 'neutral', icon: 'dot' };
     case 'WFH':
     case 'WORKING':
       break;
@@ -48,7 +48,7 @@ export function dayStatus(d: Day): StatusInfo {
   }
   if (d.kind === 'WFH') return { label: 'WFH', tone: 'wfh', icon: 'home' };
   return (d.balanceMinutes ?? 0) >= 0
-    ? { label: 'Target met', tone: 'ok', icon: 'check' }
+    ? { label: 'Hours done', tone: 'ok', icon: 'check' }
     : { label: 'Short', tone: 'warn', icon: 'clock' };
 }
 

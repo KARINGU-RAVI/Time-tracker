@@ -217,7 +217,7 @@ describe('Settings', () => {
     expect(await screen.findByText(/8h per day, 40h per week, Mon, Tue, Wed, Thu, Fri, week starts Monday, effective from 2026-09-01/)).toBeInTheDocument();
     expect(screen.getByText(/Development mode: sign-in is off/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Export backup (JSON)' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Restore from backup' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Bring back from a backup' })).toBeEnabled();
   });
 
   it('switches the theme and remembers it', async () => {
