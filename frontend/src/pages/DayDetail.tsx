@@ -41,7 +41,7 @@ export default function DayDetail() {
   const [notes, setNotes] = useState('');
   const [informed, setInformed] = useState(false);
   const [eventId, setEventId] = useState<string>('');
-  const [dialog, setDialog] = useState<{ open: boolean; session?: Session }>({ open: false });
+  const [dialog, setDialog] = useState<{ open: boolean; session?: Session; askForOut?: boolean }>({ open: false });
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -118,7 +118,7 @@ export default function DayDetail() {
             <Button
               size="sm"
               variant="danger"
-              onClick={() => setDialog({ open: true, session: data.sessions.find((s) => s.outTime === null) })}
+              onClick={() => setDialog({ open: true, session: data.sessions.find((s) => s.outTime === null), askForOut: true })}
             >
               Add OUT time
             </Button>
@@ -306,7 +306,7 @@ export default function DayDetail() {
         </div>
       </div>
 
-      <AddSessionDialog date={date} open={dialog.open} onOpenChange={(open) => setDialog((d) => ({ ...d, open }))} session={dialog.session} />
+      <AddSessionDialog date={date} open={dialog.open} onOpenChange={(open) => setDialog((d) => ({ ...d, open }))} session={dialog.session} askForOut={dialog.askForOut} />
     </div>
   );
 }

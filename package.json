@@ -5,12 +5,14 @@
   "workspaces": [
     "backend",
     "frontend",
-    "shared/*"
+    "shared/*",
+    "e2e"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build -w @oht/frontend",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "e2e": "npm run e2e -w @oht/e2e"
   }
 }

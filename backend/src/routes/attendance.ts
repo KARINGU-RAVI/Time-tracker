@@ -81,8 +81,13 @@ function assertTracked(date: string, cfg: UserConfig) {
 async function assertSessionOk(
   db: Db,
   userId: string,
-  p: { date: string; inMs: number; outMs: number | null; excludeId?: string; maxSessionMinutes: number },
+  p: { date: string; inMs: number; outMs: number | null; excludeId?: string; maxSessionMinutes: number; nowMs: number },
 ) {
+  // Time that has not happened yet cannot be worked time (a minute of slack for clocks that differ slightly).
+  const SLACK_MS = 60_000;
+  if (p.inMs > p.nowMs + SLACK_MS || (p.outMs !== null && p.outMs > p.nowMs + SLACK_MS)) {
+    throw new ApiError(400, 'IN_THE_FUTURE', 'You cannot record a time that has not happened yet.');
+  }
   const issues = validateSessions([{ inTime: p.inMs, outTime: p.outMs }], {
     date: p.date,
     maxSessionMinutes: p.maxSessionMinutes,
@@ -163,6 +168,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
           inMs,
           outMs: null,
           maxSessionMinutes: cfg.maxSessionMinutes,
+          nowMs: now,
         });
         const attendance = await tx.attendance.upsert({
           where: { userId_date: { userId: user.id, date: toDbDate(today) } },
@@ -192,7 +198,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       if (!open) throw new ApiError(409, 'NOT_CHECKED_IN', 'No active session to check out.');
 
       const inMs = open.inTime.getTime();
-      if (outMs <= inMs) throw new ApiError(409, 'TOO_SHORT', 'OUT must be after IN.');
+      if (outMs <= inMs) throw new ApiError(409, 'TOO_SHORT', 'You checked in less than a minute ago. Wait a moment, then check out.');
       if ((outMs - inMs) / 60_000 > cfg.maxSessionMinutes) {
         // Forgot to check out on an earlier day: never guess. Ask for the real OUT time.
         throw new ApiError(
@@ -352,7 +358,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       assertTracked(date, cfg);
 
       await prisma.$transaction(async (tx) => {
-        await assertSessionOk(tx, user.id, { date, inMs, outMs, maxSessionMinutes: cfg.maxSessionMinutes });
+        await assertSessionOk(tx, user.id, { date, inMs, outMs, maxSessionMinutes: cfg.maxSessionMinutes, nowMs: clock() });
         const attendance = await tx.attendance.upsert({
           where: { userId_date: { userId: user.id, date: toDbDate(date) } },
           update: {},
@@ -397,7 +403,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       const cfg = await loadUserConfig(prisma, user.id, clock());
 
       await prisma.$transaction(async (tx) => {
-        await assertSessionOk(tx, user.id, { date, inMs, outMs, excludeId: id, maxSessionMinutes: cfg.maxSessionMinutes });
+        await assertSessionOk(tx, user.id, { date, inMs, outMs, excludeId: id, maxSessionMinutes: cfg.maxSessionMinutes, nowMs: clock() });
         const updated = await tx.attendanceSession.update({
           where: { id },
           data: { inTime: new Date(inMs), outTime: outMs === null ? null : new Date(outMs) },
