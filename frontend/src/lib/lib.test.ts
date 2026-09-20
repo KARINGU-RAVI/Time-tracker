@@ -31,7 +31,7 @@ const day = (over: Partial<Day> = {}): Day => ({
 
 describe('dayStatus', () => {
   it('labels every status with text and an icon, not just a colour', () => {
-    expect(dayStatus(day())).toMatchObject({ label: 'Target met', tone: 'ok', icon: 'check' });
+    expect(dayStatus(day())).toMatchObject({ label: 'Hours done', tone: 'ok', icon: 'check' });
     expect(dayStatus(day({ balanceMinutes: -30 }))).toMatchObject({ label: 'Short', tone: 'warn' });
     expect(dayStatus(day({ kind: 'WFH' }))).toMatchObject({ label: 'WFH', tone: 'wfh', icon: 'home' });
     expect(dayStatus(day({ kind: 'FULL_LEAVE' }))).toMatchObject({ label: 'Leave', tone: 'leave' });

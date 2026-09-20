@@ -23,7 +23,7 @@ export function mapDbError(e: unknown): ApiError | null {
   const code = (e as { code?: string } | null)?.code;
 
   if (text.includes('session_no_overlap')) {
-    return new ApiError(409, 'OVERLAP', 'This session overlaps another session.');
+    return new ApiError(409, 'OVERLAP', 'This check-in overlaps another session.');
   }
   if (text.includes('session_one_open_per_user')) {
     return new ApiError(409, 'ALREADY_CHECKED_IN', 'You are already checked in.');
@@ -38,7 +38,7 @@ export function mapDbError(e: unknown): ApiError | null {
     return new ApiError(409, 'RULE_OVERLAP', 'This rule overlaps another rule version.');
   }
   if (text.includes('attendance_bereavement_link')) {
-    return new ApiError(400, 'BEREAVEMENT_EVENT_REQUIRED', 'Bereavement leave must be linked to an event.');
+    return new ApiError(400, 'BEREAVEMENT_EVENT_REQUIRED', 'Choose or add the death in the family first.');
   }
   if (text.includes('attendance_half_day_only_casual_sick')) {
     return new ApiError(400, 'HALF_DAY_NOT_ALLOWED', 'Only casual or sick leave can be a half day.');

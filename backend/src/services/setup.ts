@@ -95,10 +95,10 @@ export function planSetup(input: SetupInput, today: string, companyHolidays: Set
     throw bad('WEEKLY_TOO_HIGH', 'The weekly hours are more than the daily hours across your working days.');
   }
   if (!work.trackingStartDate.startsWith(String(year))) {
-    throw bad('INVALID_TRACKING_START', `Choose a tracking start date in ${year}.`);
+    throw bad('INVALID_TRACKING_START', `Choose a start date in ${year}.`);
   }
   if (leave.carriedForward > leave.carryForwardCap) {
-    throw bad('CARRY_TOO_HIGH', `At most ${leave.carryForwardCap} days can be carried forward, so this cannot be more.`);
+    throw bad('CARRY_TOO_HIGH', `You can keep at most ${leave.carryForwardCap} days from last year, so this cannot be more.`);
   }
   if (leave.birthdayTaken && leave.birthdayQuota <= 0) {
     throw bad('BIRTHDAY_NOT_AVAILABLE', 'There is no birthday half-day allowance to have used.');
@@ -115,7 +115,7 @@ export function planSetup(input: SetupInput, today: string, companyHolidays: Set
   const ledger: LedgerRow[] = [];
   const jan1 = `${year}-01-01`;
 
-  if (leave.carriedForward > 0) ledger.push({ pool: 'ANNUAL', type: 'OPENING', days: leave.carriedForward, effectiveDate: jan1, note: `Carried forward from ${year - 1}` });
+  if (leave.carriedForward > 0) ledger.push({ pool: 'ANNUAL', type: 'OPENING', days: leave.carriedForward, effectiveDate: jan1, note: `Left over from ${year - 1}` });
 
   let creditedByToday = 0;
   let creditedBeforeStart = 0;
@@ -127,19 +127,19 @@ export function planSetup(input: SetupInput, today: string, companyHolidays: Set
     if (first <= dayBefore) creditedBeforeStart += leave.accrualPerMonth;
   }
 
-  // The used-so-far figure is checked against what could have been available before tracking began.
+  // The used-so-far figure is checked against what could have been available before counting began.
   const available = round2(leave.carriedForward + creditedBeforeStart);
   if (leave.annualUsedSoFar > available) {
-    throw bad('USED_MORE_THAN_AVAILABLE', `You cannot have used ${leave.annualUsedSoFar} days when only ${available} were available before your tracking start date.`);
+    throw bad('USED_MORE_THAN_AVAILABLE', `You cannot have used ${leave.annualUsedSoFar} days when only ${available} were available before the date you start counting.`);
   }
-  if (leave.annualUsedSoFar > 0) ledger.push({ pool: 'ANNUAL', type: 'ADJUSTMENT', days: -leave.annualUsedSoFar, effectiveDate: adjustmentDate, note: 'Leave taken before tracking began' });
+  if (leave.annualUsedSoFar > 0) ledger.push({ pool: 'ANNUAL', type: 'ADJUSTMENT', days: -leave.annualUsedSoFar, effectiveDate: adjustmentDate, note: 'Leave taken before counting began' });
 
-  if (leave.optionalQuota > 0) ledger.push({ pool: 'OPTIONAL', type: 'GRANT', days: leave.optionalQuota, effectiveDate: jan1, note: `Optional leave quota for ${year}` });
-  if (leave.optionalUsedSoFar > 0) ledger.push({ pool: 'OPTIONAL', type: 'ADJUSTMENT', days: -leave.optionalUsedSoFar, effectiveDate: adjustmentDate, note: 'Optional leave used before tracking began' });
+  if (leave.optionalQuota > 0) ledger.push({ pool: 'OPTIONAL', type: 'GRANT', days: leave.optionalQuota, effectiveDate: jan1, note: `Optional holidays for ${year}` });
+  if (leave.optionalUsedSoFar > 0) ledger.push({ pool: 'OPTIONAL', type: 'ADJUSTMENT', days: -leave.optionalUsedSoFar, effectiveDate: adjustmentDate, note: 'Optional holidays used before counting began' });
 
   const birthdayUsed = leave.birthdayTaken ? leave.birthdayQuota : 0;
-  if (leave.birthdayQuota > 0) ledger.push({ pool: 'BIRTHDAY', type: 'GRANT', days: leave.birthdayQuota, effectiveDate: jan1, note: `Birthday half-day allowance for ${year}` });
-  if (birthdayUsed > 0) ledger.push({ pool: 'BIRTHDAY', type: 'ADJUSTMENT', days: -birthdayUsed, effectiveDate: adjustmentDate, note: 'Birthday half-day taken before tracking began' });
+  if (leave.birthdayQuota > 0) ledger.push({ pool: 'BIRTHDAY', type: 'GRANT', days: leave.birthdayQuota, effectiveDate: jan1, note: `Birthday half-day for ${year}` });
+  if (birthdayUsed > 0) ledger.push({ pool: 'BIRTHDAY', type: 'ADJUSTMENT', days: -birthdayUsed, effectiveDate: adjustmentDate, note: 'Birthday half-day taken before counting began' });
 
   // Holidays
   let holidays: SetupPlan['holidays'] = [];

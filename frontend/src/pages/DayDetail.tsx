@@ -18,7 +18,7 @@ const STATUS_OPTIONS: Array<{ value: AttendanceStatus; label: string }> = [
   { value: 'WFH', label: 'WFH' },
   { value: 'CASUAL_LEAVE', label: 'Casual leave' },
   { value: 'SICK_LEAVE', label: 'Sick leave' },
-  { value: 'BEREAVEMENT_LEAVE', label: 'Bereavement' },
+  { value: 'BEREAVEMENT_LEAVE', label: 'Death in family' },
   { value: 'OPTIONAL_HOLIDAY', label: 'Optional holiday' },
   { value: 'BIRTHDAY_LEAVE', label: 'Birthday half-day' },
 ];
@@ -120,13 +120,13 @@ export default function DayDetail() {
             </Button>
           }
         >
-          The last session has no OUT time. Add it to include this time in your totals.
+          The last entry has no OUT time. Add it so this time is counted.
         </Banner>
       )}
-      {day.isUnrecorded && <Banner tone="warn">No record for this day. Add a session or set a status.</Banner>}
+      {day.isUnrecorded && <Banner tone="warn">Nothing saved for this day. Add a time entry or choose a status.</Banner>}
       {day.warnings.includes('WORKED_ON_OFF_DAY') && (
         <Banner tone="warn">
-          <span className="num">{formatDuration(day.offDayWorkedMinutes)}</span> recorded on a day off. It is not counted in your balance.
+          <span className="num">{formatDuration(day.offDayWorkedMinutes)}</span> worked on a day off. It is not counted in your total.
         </Banner>
       )}
 
@@ -137,7 +137,7 @@ export default function DayDetail() {
               <Stat label="Required" value={formatDuration(day.requiredMinutes)} />
               <Stat label={day.isIncomplete ? 'Worked (counted)' : 'Worked'} value={formatDuration(day.workedMinutes)} />
               <Stat
-                label="Balance"
+                label="Ahead or behind"
                 value={day.balanceMinutes === null ? 'N/A' : formatDuration(day.balanceMinutes, { signed: true })}
                 tone={day.balanceMinutes === null ? undefined : day.balanceMinutes < 0 ? 'warn' : 'ok'}
               />
@@ -168,7 +168,7 @@ export default function DayDetail() {
             />
             {confirmDelete && (
               <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-bad/40 bg-bad/5 p-3 text-sm">
-                <span>Delete this session?</span>
+                <span>Delete this entry?</span>
                 <span className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(null)}>
                     Keep
@@ -186,7 +186,7 @@ export default function DayDetail() {
             )}
             {delSession.error && <p role="alert" className="mt-2 text-sm text-bad">{delSession.error.message}</p>}
             <Button className="mt-4 w-full" onClick={() => setDialog({ open: true })}>
-              <Plus size={18} aria-hidden /> Add session
+              <Plus size={18} aria-hidden /> Add time entry
             </Button>
           </Card>
         </div>
@@ -220,7 +220,7 @@ export default function DayDetail() {
             {status === 'BEREAVEMENT_LEAVE' && (
               <div className="mt-3">
                 <label htmlFor="event" className="text-sm font-medium text-ink-soft">
-                  Bereavement event
+                  Which death in the family
                 </label>
                 <select id="event" className={inputClass + ' mt-1'} value={eventId} onChange={(e) => setEventId(e.target.value)}>
                   <option value="">Choose an event</option>
@@ -241,7 +241,7 @@ export default function DayDetail() {
             {isLeave(status) && (
               <label className="mt-3 flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={informed} onChange={(e) => setInformed(e.target.checked)} />
-                Manager informed
+                I told my manager
               </label>
             )}
 

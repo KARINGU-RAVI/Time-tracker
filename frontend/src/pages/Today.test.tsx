@@ -80,7 +80,7 @@ describe('Today', () => {
     api.get.mockResolvedValue(dashboard());
     renderToday();
     expect(await screen.findByLabelText('Worked today')).toHaveTextContent(/^6:55:0\d$/);
-    expect(screen.getByLabelText('This session')).toHaveTextContent(/^3:27:0\d$/);
+    expect(screen.getByLabelText('This check-in')).toHaveTextContent(/^3:27:0\d$/);
     expect(screen.getByLabelText('Time remaining')).toHaveTextContent(/^1:04:5\d$|^1:05:00$/);
     expect(screen.getByText('8h 00m')).toBeInTheDocument();
     expect(screen.getByText('4:47 PM')).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe('Today', () => {
       api.get.mockResolvedValue(dashboard());
       renderToday();
       expect(await screen.findByLabelText('Worked today')).toHaveTextContent(/^6:55:0\d$/);
-      expect(screen.getByLabelText('This session')).toHaveTextContent(/^3:27:0\d$/);
+      expect(screen.getByLabelText('This check-in')).toHaveTextContent(/^3:27:0\d$/);
       expect(screen.getByLabelText('Current time')).toHaveTextContent(/^15:42:0\d$/); // India time, from the server
     } finally {
       spy.mockRestore();
@@ -123,7 +123,7 @@ describe('Today', () => {
     );
     renderToday();
     expect(await screen.findByLabelText('Worked today')).toHaveTextContent('3:28:00');
-    expect(screen.queryByLabelText('This session')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('This check-in')).not.toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 1300));
     expect(screen.getByLabelText('Worked today')).toHaveTextContent('3:28:00');
     expect(screen.getByLabelText('Time remaining')).toHaveTextContent('4:32:00');
@@ -134,7 +134,7 @@ describe('Today', () => {
       dashboard({ workedMinutes: 500, overtimeMinutes: 20, balanceMinutes: 20, live: { status: 'INSIDE', remainingMinutes: 0, expectedOutAt: null, expectedOutClock: null, ifCheckInNowOutClock: null } }),
     );
     renderToday();
-    expect(await screen.findByLabelText('Overtime')).toHaveTextContent(/^0:2\d:\d\d$/);
+    expect(await screen.findByLabelText('Extra time')).toHaveTextContent(/^0:2\d:\d\d$/);
     expect(screen.queryByLabelText('Time remaining')).not.toBeInTheDocument();
   });
 
@@ -203,7 +203,7 @@ describe('Today', () => {
       dashboard({ kind: 'BEFORE_TRACKING', requiredMinutes: 0, workedMinutes: 0, isInside: false, sessionCount: 0, balanceMinutes: null, sessions: [] }),
     );
     renderToday();
-    expect(await screen.findByText('Tracking starts on Tue, 1 Sep 2026')).toBeInTheDocument();
+    expect(await screen.findByText('Counting starts on Tue, 1 Sep 2026')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /check in/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /check out/i })).not.toBeInTheDocument();
     expect(screen.queryByText('No work is required today.')).not.toBeInTheDocument();

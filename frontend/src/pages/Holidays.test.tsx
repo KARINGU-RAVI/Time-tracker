@@ -163,7 +163,7 @@ describe('Import from a file', () => {
     URL.revokeObjectURL = vi.fn();
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     open();
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Download template' }));
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Download a sample file' }));
     expect(click).toHaveBeenCalledTimes(1);
     const text = await blobs[0]!.text();
     expect(text.split('\n')[0]).toBe('date,name,type,description');

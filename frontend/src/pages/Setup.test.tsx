@@ -58,7 +58,7 @@ async function toLeaveStep(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole('heading', { name: 'Set up your account' });
   await next(user); // profile -> work
   await next(user); // work -> leave
-  await screen.findByText('Your balance after setup');
+  await screen.findByText('Your leave after setup');
 }
 
 describe('the setup wizard', () => {
@@ -91,7 +91,7 @@ describe('the setup wizard', () => {
     for (const d of ['Saturday', 'Sunday']) expect(screen.getByRole('button', { name: d })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('radio', { name: 'Monday' })).toBeChecked();
     expect(screen.getByText('India Standard Time (UTC+05:30)')).toBeInTheDocument();
-    expect(screen.getByLabelText('Start tracking from')).toHaveValue('2026-09-21');
+    expect(screen.getByLabelText('Start counting from')).toHaveValue('2026-09-21');
   });
 
   it('needs at least one working day', async () => {
@@ -117,13 +117,13 @@ describe('the setup wizard', () => {
     mount();
     const user = userEvent.setup();
     await toLeaveStep(user);
-    const carried = screen.getByLabelText('Carried forward from last year');
+    const carried = screen.getByLabelText('Leave left over from last year');
     await user.clear(carried);
     await user.type(carried, '2');
-    const used = screen.getByLabelText('Annual leave taken this year so far');
+    const used = screen.getByLabelText('Leave already taken this year');
     await user.clear(used);
     await user.type(used, '5');
-    const optional = screen.getByLabelText('Optional leave taken this year so far');
+    const optional = screen.getByLabelText('Optional holidays already taken this year');
     await user.clear(optional);
     await user.type(optional, '1');
     expect(await screen.findByText('12.75 days')).toBeInTheDocument();
@@ -149,7 +149,7 @@ describe('the setup wizard', () => {
     const user = userEvent.setup();
     await toLeaveStep(user);
     const before = api.post.mock.calls.length;
-    await user.type(screen.getByLabelText('Carried forward from last year'), 'abc');
+    await user.type(screen.getByLabelText('Leave left over from last year'), 'abc');
     expect(screen.getAllByText('Enter a number, for example 1.75.').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     await new Promise((r) => setTimeout(r, 450));
@@ -228,10 +228,10 @@ describe('the setup wizard', () => {
       const spy = vi.spyOn(client, 'invalidateQueries');
       const user = userEvent.setup();
       await toLeaveStep(user);
-      const carried = screen.getByLabelText('Carried forward from last year');
+      const carried = screen.getByLabelText('Leave left over from last year');
       await user.clear(carried);
       await user.type(carried, '2');
-      const used = screen.getByLabelText('Annual leave taken this year so far');
+      const used = screen.getByLabelText('Leave already taken this year');
       await user.clear(used);
       await user.type(used, '5');
       await screen.findByText('12.75 days');
@@ -285,7 +285,7 @@ describe('birthday half-day in the setup wizard', () => {
     mount();
     const user = userEvent.setup();
     await toLeaveStep(user);
-    expect(screen.getByLabelText('Birthday half-day allowance per year')).toHaveValue('0.5');
+    expect(screen.getByLabelText('Birthday half-day each year')).toHaveValue('0.5');
     expect(await screen.findByText('0.5 left')).toBeInTheDocument(); // the preview: nothing taken yet
     await user.click(screen.getByLabelText('I have already taken my birthday half-day this year'));
     expect(await screen.findByText('0 left')).toBeInTheDocument();
@@ -295,7 +295,7 @@ describe('birthday half-day in the setup wizard', () => {
     mount();
     const user = userEvent.setup();
     await toLeaveStep(user);
-    const allowance = screen.getByLabelText('Birthday half-day allowance per year');
+    const allowance = screen.getByLabelText('Birthday half-day each year');
     await user.clear(allowance);
     await user.type(allowance, '0');
     expect(screen.getByLabelText('I have already taken my birthday half-day this year')).toBeDisabled();

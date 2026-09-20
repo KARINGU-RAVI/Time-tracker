@@ -177,7 +177,7 @@ export function leaveRoutes({ prisma, clock }: AppDeps): Router {
 
       if (b.type === 'BEREAVEMENT_LEAVE') {
         if (!b.bereavementEventId) {
-          throw new ApiError(400, 'BEREAVEMENT_EVENT_REQUIRED', 'Choose or log a bereavement event first.');
+          throw new ApiError(400, 'BEREAVEMENT_EVENT_REQUIRED', 'Choose or add the death in the family first.');
         }
         const event = await prisma.bereavementEvent.findFirst({ where: { id: b.bereavementEventId, userId: user.id } });
         if (!event) throw new ApiError(404, 'NOT_FOUND', 'Bereavement event not found.');
@@ -191,7 +191,7 @@ export function leaveRoutes({ prisma, clock }: AppDeps): Router {
           },
         });
         if (already + p.counted.length > limit) {
-          throw new ApiError(409, 'BEREAVEMENT_LIMIT', `Bereavement leave is limited to ${limit} days per event.`);
+          throw new ApiError(409, 'BEREAVEMENT_LIMIT', `Leave for a death in the family is limited to ${limit} days each time.`);
         }
       }
 

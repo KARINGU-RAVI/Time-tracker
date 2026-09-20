@@ -60,7 +60,7 @@ describe('Calendar', () => {
     expect(screen.getByText('Overtime 30m')).toBeInTheDocument();
     expect(screen.getByText('Unpaid (LOP) 0')).toBeInTheDocument();
 
-    expect(await screen.findByRole('link', { name: '2026-09-01: Target met' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: '2026-09-01: Hours done' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '2026-09-05: Weekly off' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '2026-09-07: Holiday' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '2026-09-08: WFH' })).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('Calendar', () => {
   it('lays out 5 weeks starting Monday, with 1 Sep under Tuesday', async () => {
     serve();
     renderAt('/calendar', '/calendar', <Calendar />);
-    await screen.findByRole('link', { name: '2026-09-01: Target met' });
+    await screen.findByRole('link', { name: '2026-09-01: Hours done' });
     const cells = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/day/'));
     expect(cells).toHaveLength(30);
     const firstRowHeaders = screen.getAllByText(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/).slice(0, 7).map((e) => e.textContent);
@@ -90,7 +90,7 @@ describe('Calendar', () => {
   it('requests the whole month and moves between months', async () => {
     serve();
     renderAt('/calendar', '/calendar', <Calendar />);
-    await screen.findByRole('link', { name: '2026-09-01: Target met' });
+    await screen.findByRole('link', { name: '2026-09-01: Hours done' });
     expect(api.get).toHaveBeenCalledWith('/attendance', { startDate: '2026-09-01', endDate: '2026-09-30' });
 
     const user = userEvent.setup();
@@ -109,7 +109,7 @@ describe('Calendar', () => {
     serve();
     renderAt('/calendar', '/calendar', <Calendar />);
     const legend = await screen.findByRole('list', { name: 'Legend' });
-    for (const label of ['Target met', 'Short', 'WFH', 'Leave', 'Holiday', 'Weekly off', 'Needs fix']) {
+    for (const label of ['Hours done', 'Short', 'WFH', 'Leave', 'Holiday', 'Weekly off', 'Needs fix']) {
       expect(legend).toHaveTextContent(label);
     }
   });
@@ -119,6 +119,6 @@ describe('Calendar', () => {
     api.get.mockImplementation(async (url: string) => (url === '/attendance' ? { days: september() } : totals));
     renderAt('/calendar', '/calendar', <Calendar />);
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Try again' }));
-    expect(await screen.findByRole('link', { name: '2026-09-01: Target met' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: '2026-09-01: Hours done' })).toBeInTheDocument();
   });
 });

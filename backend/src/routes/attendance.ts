@@ -70,7 +70,7 @@ function assertTracked(date: string, cfg: UserConfig) {
     throw new ApiError(
       400,
       'BEFORE_TRACKING_START',
-      `Tracking starts on ${prettyDate(cfg.trackingStartDate)}. Nothing before that date is counted.`,
+      `Counting starts on ${prettyDate(cfg.trackingStartDate)}. Nothing before that date is counted.`,
     );
   }
 }
@@ -272,7 +272,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       }
       if (body.status === 'BEREAVEMENT_LEAVE') {
         if (!body.bereavementEventId) {
-          throw new ApiError(400, 'BEREAVEMENT_EVENT_REQUIRED', 'Bereavement leave must be linked to an event.');
+          throw new ApiError(400, 'BEREAVEMENT_EVENT_REQUIRED', 'Choose or add the death in the family first.');
         }
         const event = await prisma.bereavementEvent.findFirst({
           where: { id: body.bereavementEventId, userId: user.id },
@@ -284,7 +284,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
           where: { userId: user.id, bereavementEventId: event.id, date: { not: toDbDate(date) } },
         });
         if (already + 1 > limit) {
-          throw new ApiError(409, 'BEREAVEMENT_LIMIT', `Bereavement leave is limited to ${limit} days per event.`);
+          throw new ApiError(409, 'BEREAVEMENT_LIMIT', `Leave for a death in the family is limited to ${limit} days each time.`);
         }
       } else if (body.bereavementEventId) {
         throw new ApiError(400, 'BEREAVEMENT_EVENT_NOT_ALLOWED', 'Only bereavement days can link to an event.');

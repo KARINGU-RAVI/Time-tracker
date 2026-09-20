@@ -55,13 +55,13 @@ describe('Leave balances', () => {
     serve();
     open();
     expect(await screen.findByText('12.75', { selector: 'p' })).toBeInTheDocument(); // the balance card (the ledger also shows 12.75)
-    expect(screen.getByText('Carried in').nextSibling).toHaveTextContent('2.00');
-    expect(screen.getByText('Accrued').nextSibling).toHaveTextContent('15.75');
+    expect(screen.getByText('From last year').nextSibling).toHaveTextContent('2.00');
+    expect(screen.getByText('Added so far').nextSibling).toHaveTextContent('15.75');
     expect(screen.getByText('Used').nextSibling).toHaveTextContent('5.00');
     expect(screen.getByText(/Next credit: \+1.75 on 1 Oct/)).toBeInTheDocument();
     expect(screen.getByText('1 of 2 remaining')).toBeInTheDocument();
-    expect(screen.getByText(/Up to 5 days per event/)).toBeInTheDocument();
-    expect(screen.getByText('No events logged.')).toBeInTheDocument();
+    expect(screen.getByText(/Up to 5 days each time/)).toBeInTheDocument();
+    expect(screen.getByText('Nothing added yet.')).toBeInTheDocument();
   });
 
   it('shows the ledger with signs and a running balance', async () => {
@@ -80,7 +80,7 @@ describe('Leave balances', () => {
     expect(await screen.findByText('Sep 1.5')).toBeInTheDocument();
     expect(screen.getByText('Aug 0')).toBeInTheDocument();
     expect(screen.queryByText('Oct 0')).not.toBeInTheDocument(); // only months up to now
-    expect(screen.getByText(/13.25 will lapse on 31 Dec/)).toBeInTheDocument();
+    expect(screen.getByText(/13.25 will be lost on 31 Dec/)).toBeInTheDocument();
     expect(screen.getByText(/cut from that month's salary/)).toBeInTheDocument();
   });
 });
@@ -115,7 +115,7 @@ describe('Applying leave', () => {
     expect(await navigator.clipboard.readText()).toBe(unpaid.managerMessage);
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
 
-    await user.click(screen.getByLabelText('Manager informed'));
+    await user.click(screen.getByLabelText('I told my manager'));
     await user.click(screen.getByRole('button', { name: 'Apply leave' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/apply', expect.objectContaining({ managerInformed: true })));
   });
@@ -134,7 +134,7 @@ describe('Applying leave', () => {
     const half = await screen.findByLabelText(/Half day/);
     expect(half).toBeEnabled();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('radio', { name: 'Bereavement' }));
+    await user.click(screen.getByRole('radio', { name: 'Death in family' }));
     expect(half).toBeDisabled();
     await user.click(screen.getByRole('radio', { name: 'Sick leave' }));
     expect(half).toBeEnabled();
@@ -166,8 +166,8 @@ describe('Bereavement', () => {
     open();
     expect(await screen.findByText(/Family member, 16 Sep: 2\/5 days/)).toBeInTheDocument();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('radio', { name: 'Bereavement' }));
-    await user.selectOptions(screen.getByLabelText('Bereavement event'), 'e1');
+    await user.click(screen.getByRole('radio', { name: 'Death in family' }));
+    await user.selectOptions(screen.getByLabelText('Which death in the family'), 'e1');
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/preview', applyBody({ type: 'BEREAVEMENT_LEAVE' })));
     await user.click(screen.getByRole('button', { name: 'Apply leave' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/leave/apply', applyBody({ type: 'BEREAVEMENT_LEAVE', bereavementEventId: 'e1' })));
@@ -191,7 +191,7 @@ describe('Birthday half-day', () => {
     open();
     expect(await screen.findByText('Birthday half-day', { selector: 'div' })).toBeInTheDocument();
     expect(screen.getByText('0.5 of 0.5 remaining')).toBeInTheDocument();
-    expect(screen.getByText(/Half a day each year, separate from annual leave/)).toBeInTheDocument();
+    expect(screen.getByText(/Half a day each year, separate from your yearly leave/)).toBeInTheDocument();
     expect(screen.getByText('12.75', { selector: 'p' })).toBeInTheDocument(); // annual balance is its own number
   });
 

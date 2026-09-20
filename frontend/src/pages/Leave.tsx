@@ -9,10 +9,20 @@ import { useAddBereavementEvent, useApplyLeave, useLeave, useLeavePreview, type 
 const TYPES: Array<{ value: LeaveInput['type']; label: string }> = [
   { value: 'CASUAL_LEAVE', label: 'Casual leave' },
   { value: 'SICK_LEAVE', label: 'Sick leave' },
-  { value: 'BEREAVEMENT_LEAVE', label: 'Bereavement' },
+  { value: 'BEREAVEMENT_LEAVE', label: 'Death in family' },
   { value: 'OPTIONAL_HOLIDAY', label: 'Optional holiday' },
   { value: 'BIRTHDAY_LEAVE', label: 'Birthday half-day' },
 ];
+
+// Plain names for the kinds of row in the leave history (shown when a row has no note of its own).
+const KIND_LABEL: Record<string, string> = {
+  OPENING: 'Brought from last year',
+  ACCRUAL: 'Leave added for the month',
+  GRANT: 'Yearly allowance',
+  LAPSE: 'Lost at year end',
+  ADJUSTMENT: 'Correction',
+  USAGE: 'Leave taken',
+};
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -73,7 +83,7 @@ export default function Leave() {
 
       {d.yearEnd && d.yearEnd.willLapse > 0 && (
         <Banner tone="warn">
-          Only {d.yearEnd.carryForward.toFixed(2)} days carry forward. {d.yearEnd.willLapse.toFixed(2)} will lapse on 31 Dec.
+          Only {d.yearEnd.carryForward.toFixed(2)} days can be kept for next year. {d.yearEnd.willLapse.toFixed(2)} will be lost on 31 Dec.
         </Banner>
       )}
 
@@ -87,11 +97,11 @@ export default function Leave() {
           </p>
           <dl className="num mt-2 grid grid-cols-3 gap-2 text-xs">
             <div>
-              <dt className="text-ink-soft">Carried in</dt>
+              <dt className="text-ink-soft">From last year</dt>
               <dd className="font-medium">{d.annual.carriedIn.toFixed(2)}</dd>
             </div>
             <div>
-              <dt className="text-ink-soft">Accrued</dt>
+              <dt className="text-ink-soft">Added so far</dt>
               <dd className="font-medium">{d.annual.accruedThisYear.toFixed(2)}</dd>
             </div>
             <div>
@@ -122,14 +132,14 @@ export default function Leave() {
           <p className="num mt-1 text-2xl font-semibold">
             {d.birthday.remaining} of {d.birthday.quota} remaining
           </p>
-          <p className="mt-1 text-xs text-ink-soft">Half a day each year, separate from annual leave. It does not carry over.</p>
+          <p className="mt-1 text-xs text-ink-soft">Half a day each year, separate from your yearly leave. It cannot be kept for next year.</p>
         </Card>
 
         <Card>
-          <div className="text-sm font-medium text-ink-soft">Bereavement leave</div>
-          <p className="mt-1 text-xs text-ink-soft">Up to {d.bereavement.maxDaysPerEvent} days per event, separate from annual leave.</p>
+          <div className="text-sm font-medium text-ink-soft">Leave for a death in the family</div>
+          <p className="mt-1 text-xs text-ink-soft">Up to {d.bereavement.maxDaysPerEvent} days each time, separate from your yearly leave.</p>
           {d.bereavement.events.length === 0 ? (
-            <p className="mt-2 text-sm">No events logged.</p>
+            <p className="mt-2 text-sm">Nothing added yet.</p>
           ) : (
             <ul className="mt-2 text-sm">
               {d.bereavement.events.map((e) => (
@@ -183,7 +193,7 @@ export default function Leave() {
 
         {birthday && (
           <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm text-ink-soft">
-            A birthday half-day is one date and always half a day (you still work the other half). It has its own yearly allowance and does not use your annual leave.
+            A birthday half-day is one date and always half a day (you still work the other half). It has its own yearly amount and does not use your annual leave.
           </p>
         )}
 
@@ -194,7 +204,7 @@ export default function Leave() {
 
         {type === 'BEREAVEMENT_LEAVE' && (
           <div className="mt-3">
-            <Field label="Bereavement event" htmlFor="leave-event">
+            <Field label="Which death in the family" htmlFor="leave-event">
               <select id="leave-event" className={inputClass} value={eventId} onChange={(e) => setEventId(e.target.value)}>
                 <option value="">Choose an event</option>
                 {d.bereavement.events.map((e) => (
@@ -228,7 +238,7 @@ export default function Leave() {
               </Button>
               <label className="mt-3 flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-5 w-5 accent-[var(--color-primary)]" checked={informed} onChange={(e) => setInformed(e.target.checked)} />
-                Manager informed
+                I told my manager
               </label>
             </div>
           )}
@@ -242,7 +252,7 @@ export default function Leave() {
       </Card>
 
       <Card>
-        <CardTitle>Unpaid leave (LOP) by month</CardTitle>
+        <CardTitle>Unpaid days by month</CardTitle>
         <div className="flex flex-wrap gap-2">
           {MONTHS.slice(0, Number(d.asOf.slice(5, 7))).map((m, i) => {
             const v = d.lopByMonth[`${d.year}-${String(i + 1).padStart(2, '0')}`] ?? 0;
@@ -271,14 +281,14 @@ export default function Leave() {
               <th className="py-2 font-medium">Date</th>
               <th className="py-2 font-medium">Entry</th>
               <th className="py-2 text-right font-medium">Change</th>
-              <th className="py-2 text-right font-medium">Balance</th>
+              <th className="py-2 text-right font-medium">Left</th>
             </tr>
           </thead>
           <tbody>
             {d.ledger.map((r, i) => (
               <tr key={i} className="border-t border-line">
                 <td className="num py-2">{shortDate(r.date)}</td>
-                <td className="py-2">{r.note ?? r.kind.charAt(0) + r.kind.slice(1).toLowerCase()}</td>
+                <td className="py-2">{r.note ?? KIND_LABEL[r.kind] ?? r.kind}</td>
                 <td className={cn('num py-2 text-right font-medium', r.days < 0 ? 'text-leave' : 'text-ok')}>
                   {r.days > 0 ? '+' : ''}
                   {r.days.toFixed(2)}

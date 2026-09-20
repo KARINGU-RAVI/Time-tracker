@@ -28,7 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
   WFH: 'WFH',
   CASUAL_LEAVE: 'Casual leave',
   SICK_LEAVE: 'Sick leave',
-  BEREAVEMENT_LEAVE: 'Bereavement leave',
+  BEREAVEMENT_LEAVE: 'Leave for a death in the family',
   OPTIONAL_HOLIDAY: 'Optional holiday',
   BIRTHDAY_LEAVE: 'Birthday half-day',
 };

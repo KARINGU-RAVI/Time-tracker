@@ -61,7 +61,7 @@ describe('DayDetail', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('radio', { name: 'Casual leave' }));
     expect(half).toBeEnabled();
-    await user.click(screen.getByRole('radio', { name: 'Bereavement' }));
+    await user.click(screen.getByRole('radio', { name: 'Death in family' }));
     expect(half).toBeDisabled();
   });
 
@@ -72,7 +72,7 @@ describe('DayDetail', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('radio', { name: 'Casual leave' }));
     await user.click(screen.getByLabelText(/Half day/));
-    await user.click(screen.getByLabelText('Manager informed'));
+    await user.click(screen.getByLabelText('I told my manager'));
     await user.type(screen.getByLabelText('Notes'), '  Doctor  ');
     await user.click(screen.getByRole('button', { name: 'Save day' }));
     await waitFor(() =>
@@ -103,11 +103,11 @@ describe('DayDetail', () => {
     open();
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Delete session 08:05' }));
-    expect(screen.getByText('Delete this session?')).toBeInTheDocument();
+    expect(screen.getByText('Delete this entry?')).toBeInTheDocument();
     expect(api.del).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Keep' }));
-    expect(screen.queryByText('Delete this session?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Delete this entry?')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Delete session 08:05' }));
     await user.click(screen.getByRole('button', { name: 'Delete' }));
@@ -117,8 +117,8 @@ describe('DayDetail', () => {
   it('bereavement needs an event, and points to the Leave screen when there are none', async () => {
     serve(makeDetail({}, { date: '2026-09-17' }));
     open();
-    await userEvent.setup().click(await screen.findByRole('radio', { name: 'Bereavement' }));
-    expect(screen.getByLabelText('Bereavement event')).toBeInTheDocument();
+    await userEvent.setup().click(await screen.findByRole('radio', { name: 'Death in family' }));
+    expect(screen.getByLabelText('Which death in the family')).toBeInTheDocument();
     expect(screen.getByText(/Log one on the Leave screen/)).toBeInTheDocument();
   });
 
@@ -127,8 +127,8 @@ describe('DayDetail', () => {
     api.put.mockResolvedValue(makeDetail());
     open();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('radio', { name: 'Bereavement' }));
-    await user.selectOptions(await screen.findByLabelText('Bereavement event'), 'e1');
+    await user.click(await screen.findByRole('radio', { name: 'Death in family' }));
+    await user.selectOptions(await screen.findByLabelText('Which death in the family'), 'e1');
     await user.click(screen.getByRole('button', { name: 'Save day' }));
     await waitFor(() => expect(api.put).toHaveBeenCalledWith('/attendance/2026-09-17', expect.objectContaining({ status: 'BEREAVEMENT_LEAVE', bereavementEventId: 'e1' })));
   });
@@ -136,9 +136,9 @@ describe('DayDetail', () => {
   it('flags an unrecorded day and hides "Delete day record" when nothing is stored', async () => {
     serve(makeDetail({ status: null }, { date: '2026-09-17', isUnrecorded: true, workedMinutes: 0, balanceMinutes: -480, sessionCount: 0, firstInClock: null, lastOutClock: null }));
     open();
-    expect(await screen.findByText(/No record for this day/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nothing saved for this day/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Delete day record/ })).not.toBeInTheDocument();
-    expect(screen.getByText('No sessions recorded.')).toBeInTheDocument();
+    expect(screen.getByText('No entries yet.')).toBeInTheDocument();
   });
 
   it('shows Balance N/A and no missing-hours warning on a holiday', async () => {
@@ -146,13 +146,13 @@ describe('DayDetail', () => {
     open();
     expect(await screen.findByText('Holiday')).toBeInTheDocument();
     expect(screen.getByText('N/A')).toBeInTheDocument();
-    expect(screen.queryByText(/No record for this day/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Nothing saved for this day/)).not.toBeInTheDocument();
   });
 
   it('warns that work on a day off is not counted', async () => {
     serve(makeDetail({ status: null }, { date: '2026-09-19', kind: 'WEEKLY_OFF', requiredMinutes: 0, workedMinutes: 0, offDayWorkedMinutes: 120, balanceMinutes: null, warnings: ['WORKED_ON_OFF_DAY'] }));
     open();
-    expect(await screen.findByText(/recorded on a day off/)).toBeInTheDocument();
+    expect(await screen.findByText(/worked on a day off/)).toBeInTheDocument();
   });
 
   it('rejects a malformed date in the address', () => {
