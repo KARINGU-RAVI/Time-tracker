@@ -275,7 +275,7 @@ describe('refusing bad files (nothing is changed)', () => {
       ['half day longer than a day', (d) => { d.workRules[0]!.halfDayRequiredMinutes = 9999; }, /damaged or incomplete|half day longer/],
       ['leave year out of range', (d) => { d.ledger[0]!.leaveYear = 1999; }, /damaged or incomplete/],
       ['leave year mismatch', (d) => { d.ledger[0]!.leaveYear = 2030; }, /wrong leave year/],
-      ['two unclosed sessions', (d) => { d.attendance.push({ date: '2026-12-01', status: 'WORKING', dayFraction: 1, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: '2026-11-30T20:00:00.000Z', outTime: null }] }); d.attendance.push({ date: '2026-12-02', status: 'WORKING', dayFraction: 1, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: '2026-12-01T20:00:00.000Z', outTime: null }] }); }, /more than one unclosed/],
+      ['two unclosed sessions', (d) => { d.attendance.push({ date: '2026-12-01', status: 'WORKING', dayFraction: 1, halfDayPart: null, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: '2026-11-30T20:00:00.000Z', outTime: null }] }); d.attendance.push({ date: '2026-12-02', status: 'WORKING', dayFraction: 1, halfDayPart: null, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: '2026-12-01T20:00:00.000Z', outTime: null }] }); }, /more than one unclosed/],
     ];
     for (const [label, mutate, message] of cases) {
       const before = (await download(app)).checksum;
@@ -300,8 +300,8 @@ describe('refusing bad files (nothing is changed)', () => {
     // A shift that runs past midnight into a day that also has a session: valid per day, impossible together.
     const bad = sign(good, (d) => {
       d.attendance.push(
-        { date: '2026-10-05', status: 'WORKING', dayFraction: 1, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: '2026-10-05T16:30:00.000Z', outTime: '2026-10-06T02:30:00.000Z' }] },
-        { date: '2026-10-06', status: 'WORKING', dayFraction: 1, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: '2026-10-06T01:00:00.000Z', outTime: '2026-10-06T05:00:00.000Z' }] },
+        { date: '2026-10-05', status: 'WORKING', dayFraction: 1, halfDayPart: null, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: '2026-10-05T16:30:00.000Z', outTime: '2026-10-06T02:30:00.000Z' }] },
+        { date: '2026-10-06', status: 'WORKING', dayFraction: 1, halfDayPart: null, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: '2026-10-06T01:00:00.000Z', outTime: '2026-10-06T05:00:00.000Z' }] },
       );
     });
     const res = await restore(app, bad);
@@ -345,7 +345,7 @@ describe('access and size limits', () => {
       for (let i = 0; i < 1500; i++) {
         const date = new Date(Date.UTC(2020, 0, 1 + i)).toISOString().slice(0, 10);
         const day = (h: number, m: number) => new Date(istInstant(date, `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)).toISOString();
-        d.attendance.push({ date, status: 'WORKING', dayFraction: 1, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: day(8, 0), outTime: day(12, 0) }, { inTime: day(13, 0), outTime: day(17, 0) }] });
+        d.attendance.push({ date, status: 'WORKING', dayFraction: 1, halfDayPart: null, notes: null, managerInformed: false, bereavementEventId: null, sessions: [{ inTime: day(8, 0), outTime: day(12, 0) }, { inTime: day(13, 0), outTime: day(17, 0) }] });
       }
     });
     const started = Date.now();

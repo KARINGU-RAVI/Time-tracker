@@ -87,6 +87,8 @@ const attendanceSchema = z
     date: dateStr,
     status: z.enum(['WORKING', 'WFH', 'CASUAL_LEAVE', 'SICK_LEAVE', 'BEREAVEMENT_LEAVE', 'OPTIONAL_HOLIDAY', 'BIRTHDAY_LEAVE']),
     dayFraction: z.union([z.literal(1), z.literal(0.5)]),
+    // Backups made before the first/second-half choice existed have none.
+    halfDayPart: z.enum(['FIRST', 'SECOND']).nullable().default(null),
     notes: z.string().max(2000).nullable(),
     managerInformed: z.boolean(),
     bereavementEventId: z.string().max(64).nullable(),
@@ -209,6 +211,7 @@ export async function exportBackup(db: Db, userId: string, now: number): Promise
       date: fromDbDate(a.date),
       status: a.status,
       dayFraction: Number(a.dayFraction) === 0.5 ? 0.5 : 1,
+      halfDayPart: Number(a.dayFraction) === 0.5 ? (a.halfDayPart ?? null) : null,
       notes: a.notes,
       managerInformed: a.managerInformed,
       bereavementEventId: a.bereavementEventId,
@@ -264,6 +267,9 @@ export function parseBackup(raw: unknown): Backup {
     }
     if (a.dayFraction === 0.5 && a.status !== 'CASUAL_LEAVE' && a.status !== 'SICK_LEAVE' && a.status !== 'BIRTHDAY_LEAVE') {
       throw invalid(`${prettyDate(a.date)}: only casual, sick or birthday leave can be a half day.`);
+    }
+    if (a.halfDayPart !== null && a.dayFraction !== 0.5) {
+      throw invalid(`${prettyDate(a.date)}: a first or second half can only be set on a half day.`);
     }
     if (a.status === 'BIRTHDAY_LEAVE' && a.dayFraction !== 0.5) {
       throw invalid(`${prettyDate(a.date)}: a birthday leave is always a half day.`);
@@ -386,6 +392,7 @@ export async function restoreBackup(prisma: PrismaClient, userId: string, backup
             date: toDbDate(a.date),
             status: a.status,
             dayFraction: a.dayFraction,
+            halfDayPart: a.halfDayPart,
             notes: a.notes,
             managerInformed: a.managerInformed,
             bereavementEventId: a.bereavementEventId ? (eventIdMap.get(a.bereavementEventId) ?? null) : null,

@@ -38,6 +38,8 @@ const sessionBody = z.object({
 const dayBody = z.object({
   status: z.enum(STATUSES),
   dayFraction: z.union([z.literal(1), z.literal(0.5)]).default(1),
+  /** Which half a half day covers. */
+  halfDayPart: z.enum(['FIRST', 'SECOND']).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   managerInformed: z.boolean().optional(),
   bereavementEventId: z.string().uuid().nullable().optional(),
@@ -126,6 +128,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       day: serializeDay(day),
       status: record?.status ?? null,
       dayFraction: record?.dayFraction ?? 1,
+      halfDayPart: st?.halfDayPart ?? null,
       notes: st?.notes ?? null,
       managerInformed: st?.managerInformed ?? false,
       bereavementEventId: st?.bereavementEventId ?? null,
@@ -257,6 +260,9 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       if (fraction === 0.5 && body.status !== 'CASUAL_LEAVE' && body.status !== 'SICK_LEAVE' && body.status !== 'BIRTHDAY_LEAVE') {
         throw new ApiError(400, 'HALF_DAY_NOT_ALLOWED', 'Only casual or sick leave can be a half day.');
       }
+      if (body.halfDayPart && fraction !== 0.5) {
+        throw new ApiError(400, 'HALF_PART_NOT_ALLOWED', 'Choose the first or second half only for a half day.');
+      }
       if (LEAVE_STATUSES.includes(body.status)) {
         const probe = calculateDailyAttendance(
           { date, status: body.status, dayFraction: fraction, sessions: [] },
@@ -296,6 +302,7 @@ export function attendanceRoutes({ prisma, clock }: AppDeps): Router {
       const data = {
         status: body.status,
         dayFraction: fraction,
+        halfDayPart: fraction === 0.5 ? (body.halfDayPart ?? null) : null,
         notes: body.notes ?? null,
         managerInformed: body.managerInformed ?? before?.managerInformed ?? false,
         bereavementEventId: body.status === 'BEREAVEMENT_LEAVE' ? (body.bereavementEventId ?? null) : null,
