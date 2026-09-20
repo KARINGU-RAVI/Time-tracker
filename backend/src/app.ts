@@ -32,6 +32,13 @@ export function createApp(deps: AppDeps) {
   const smallJson = express.json({ limit: '1mb' });
   app.use((req, res, next) => (req.path.startsWith('/api/backup/') ? next() : smallJson(req, res, next)));
 
+  // Personal data must never be kept by a shared cache (a proxy, a CDN). The browser may keep its own copy, but must check
+  // with the server each time (the ETag makes that check cheap: an unchanged answer costs almost nothing to confirm).
+  app.use('/api', (_req, res, next) => {
+    res.set('Cache-Control', 'private, no-cache');
+    next();
+  });
+
   // Public: lets the frontend and monitoring tell whether the backend is reachable.
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, time: new Date(deps.clock()).toISOString() });

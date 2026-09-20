@@ -2,7 +2,7 @@ import { AxiosError, type AxiosResponse } from 'axios';
 import { describe, expect, it } from 'vitest';
 import { ApiError, toApiError } from './api';
 import { monthGrid, monthTitle, prettyDate, shiftMonth, dayLabel } from './dates';
-import { dayMessage, dayStatus, minutesBetween } from './status';
+import { dayBalanceLabel, dayMessage, dayStatus, minutesBetween } from './status';
 import type { Day } from './types';
 
 const day = (over: Partial<Day> = {}): Day => ({
@@ -117,3 +117,22 @@ describe('birthday half-day status', () => {
     expect(dayStatus(day({ kind: 'BIRTHDAY_HALF_DAY', requiredMinutes: 240 }))).toMatchObject({ label: 'Birthday half-day', tone: 'leave', icon: 'leave' });
   });
 });
+
+describe('dayBalanceLabel', () => {
+  it('shows the signed balance once the day has counted', () => {
+    expect(dayBalanceLabel(day({ balanceMinutes: 10 }))).toEqual({ text: '+10m', hint: null });
+    expect(dayBalanceLabel(day({ balanceMinutes: -70 }))).toEqual({ text: '-1h 10m', hint: null });
+    expect(dayBalanceLabel(day({ balanceMinutes: 0 }))).toEqual({ text: '0m', hint: null });
+  });
+  it('says Pending for a working day that has not happened yet', () => {
+    expect(dayBalanceLabel(day({ balanceMinutes: null, isFuture: true, requiredMinutes: 480 }))).toEqual({ text: 'Pending', hint: 'Counted once the day has passed' });
+  });
+  it('shows a dash where nothing is required (weekly off, holiday, leave), past or future', () => {
+    for (const over of [{ kind: 'WEEKLY_OFF' as const }, { kind: 'HOLIDAY' as const }, { kind: 'FULL_LEAVE' as const }]) {
+      for (const isFuture of [false, true]) {
+        expect(dayBalanceLabel(day({ ...over, requiredMinutes: 0, balanceMinutes: null, isFuture }))).toEqual({ text: '–', hint: 'Nothing is required this day' });
+      }
+    }
+  });
+});
+

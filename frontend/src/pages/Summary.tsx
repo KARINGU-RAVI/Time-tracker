@@ -8,7 +8,7 @@ import { Card, Chip, ErrorState, Skeleton } from '@/components/ui/primitives';
 import { cn } from '@/lib/cn';
 import { addDays, dayLabel, monthTitle, shiftMonth, shortDate, todayIst } from '@/lib/dates';
 import { useMonth, useWeek } from '@/lib/queries';
-import { dayStatus } from '@/lib/status';
+import { dayBalanceLabel, dayStatus } from '@/lib/status';
 import type { Period } from '@/lib/types';
 
 export default function Summary() {
@@ -21,6 +21,8 @@ export default function Summary() {
   const month = useMonth(ym.year, ym.month);
   const q = mode === 'week' ? week : month;
   const p: Period | undefined = q.data;
+  // A period that has not begun has no balance yet: its requirement counts towards a target, not a shortfall.
+  const notStarted = p !== undefined && p.start > today;
 
   return (
     <div className="flex flex-col gap-4">
@@ -72,9 +74,14 @@ export default function Summary() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatCard label="Required" value={formatDuration(p.requiredMinutes)} />
             <StatCard label="Worked" value={formatDuration(p.workedMinutes)} />
-            <StatCard label="Balance" value={formatDuration(p.balanceMinutes, { signed: true })} tone={p.balanceMinutes < 0 ? 'warn' : 'ok'} />
+            <StatCard label="Balance" value={notStarted ? 'Not started' : formatDuration(p.balanceMinutes, { signed: true })} tone={notStarted ? undefined : p.balanceMinutes < 0 ? 'warn' : 'ok'} />
             <StatCard label={mode === 'week' ? 'Weekly overtime' : 'Overtime'} value={formatDuration(p.periodOvertimeMinutes)} />
           </div>
+          {notStarted && (
+            <p className="flex items-center gap-2 text-sm text-ink-soft">
+              <Info size={16} aria-hidden /> This {mode} has not started yet, so there is no balance to show. The required hours are the target to reach.
+            </p>
+          )}
           {(p.counts.leaveDays > 0 || p.counts.holidays > 0 || p.counts.birthdayDays > 0) && mode === 'week' && (
             <p className="flex items-center gap-2 text-sm text-ink-soft">
               <Info size={16} aria-hidden /> Required is {formatDuration(p.requiredMinutes)} because of {p.counts.leaveDays + p.counts.holidays + p.counts.birthdayDays} leave/holiday day(s).
@@ -112,13 +119,14 @@ export default function Summary() {
                         <td className="num whitespace-nowrap px-2 py-3 text-right">{d.requiredMinutes === 0 ? '–' : formatDuration(d.workedMinutes)}</td>
                         <td className="num whitespace-nowrap px-2 py-3 text-right text-ink-soft">{formatDuration(d.requiredMinutes)}</td>
                         <td
+                          title={dayBalanceLabel(d).hint ?? undefined}
                           className={cn(
                             'num whitespace-nowrap px-4 py-3 text-right font-medium',
                             d.balanceMinutes !== null && d.balanceMinutes < 0 && 'text-[#8a6300]',
                             d.balanceMinutes !== null && d.balanceMinutes > 0 && 'text-ok',
                           )}
                         >
-                          {d.balanceMinutes === null ? 'n/a' : formatDuration(d.balanceMinutes, { signed: true })}
+                          {dayBalanceLabel(d).text}
                         </td>
                       </tr>
                     );
