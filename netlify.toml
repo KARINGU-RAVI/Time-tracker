@@ -24,7 +24,6 @@
   ]
 
 # --- Routing -------------------------------------------------------------------------------------------
-# The API first, forced, so a file can never shadow it.
 # The old Netlify address forwards to the real one, so old links and bookmarks keep working. Must come first.
 [[redirects]]
   from = "https://office-time-trackerr.netlify.app/*"
@@ -38,6 +37,7 @@
   status = 301
   force = true
 
+# The API first, forced, so a file can never shadow it.
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
