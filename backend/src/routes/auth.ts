@@ -155,7 +155,7 @@ export function authRoutes(prisma: PrismaClient, cfg: AuthConfig, authenticate: 
       await assertRoom();
       let user: User;
       try {
-        user = await prisma.user.create({ data: { email: body.email, passwordHash } });
+        user = await prisma.user.create({ data: { email: body.email, passwordHash, createdAt: new Date(now) } });
       } catch (e) {
         // Two sign-ups for one address at the same instant: the loser gets the same neutral answer.
         if ((e as { code?: string }).code === 'P2002') {
@@ -345,7 +345,7 @@ export function authRoutes(prisma: PrismaClient, cfg: AuthConfig, authenticate: 
           await assertRoom();
           await housekeeping(now);
           user = await prisma.user.create({
-            data: { email, googleSub: identity.sub, name: identity.name ?? null, emailVerifiedAt: new Date(now) },
+            data: { email, googleSub: identity.sub, name: identity.name ?? null, createdAt: new Date(now), emailVerifiedAt: new Date(now) },
           });
         }
       }

@@ -73,6 +73,24 @@
   [headers.values]
     Cache-Control = "no-cache"
 
+# The service worker must always be re-checked, or a fix to it could never reach phones.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Content-Type = "text/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Content-Type = "application/manifest+json"
+
+[[headers]]
+  for = "/offline.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 # --- Safety: no deploy previews -------------------------------------------------------------------------
 # A preview build would run with the production environment variables (database, secrets). Fail it on purpose.
 # (Also switch previews off in the Netlify site settings.)

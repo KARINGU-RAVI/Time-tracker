@@ -45,6 +45,13 @@ test.describe('on a phone', () => {
     await expect(page.getByText('Leave recorded for 1 day(s).')).toBeVisible();
   });
 
+  test('the More screen tells a phone user how to put the app on the home screen', async ({ page }) => {
+    await createAccount(page.request);
+    await page.goto('/more');
+    await expect(page.getByText('Install the app')).toBeVisible();
+    await expect(page.getByText(/Install app|Add to Home screen/).first()).toBeVisible();
+  });
+
   test('the front page and the sign-in page are usable on a phone', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

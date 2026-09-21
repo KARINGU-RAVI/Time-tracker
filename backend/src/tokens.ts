@@ -16,7 +16,8 @@ export async function issueToken(db: PrismaClient, userId: string, kind: AuthTok
   const raw = randomBytes(32).toString('base64url');
   await db.$transaction([
     db.authToken.updateMany({ where: { userId, kind, usedAt: null }, data: { usedAt: new Date(now) } }),
-    db.authToken.create({ data: { userId, kind, tokenHash: hash(raw), expiresAt: new Date(now + TOKEN_TTL_MS[kind]) } }),
+    // createdAt comes from the app's clock (not the database's), so it is always consistent with usedAt and expiresAt.
+    db.authToken.create({ data: { userId, kind, tokenHash: hash(raw), createdAt: new Date(now), expiresAt: new Date(now + TOKEN_TTL_MS[kind]) } }),
   ]);
   return raw;
 }
