@@ -28,6 +28,13 @@ const type = async (label: string, value: string) => {
 beforeEach(() => Object.values(api).forEach((m) => m.mockReset()));
 
 describe('AddSessionDialog', () => {
+  it('a prefilled time that has seconds is cut to HH:MM, so the form can still be saved', async () => {
+    renderDialog({ defaultIn: '08:49:27' });
+    expect(screen.getByLabelText('IN')).toHaveValue('08:49');
+    await userEvent.setup().click(screen.getByLabelText('Still inside (no OUT yet)'));
+    expect(screen.getByRole('button', { name: 'Save session' })).toBeEnabled();
+  });
+
   it('shows the duration live and enables Save for a valid session', async () => {
     renderDialog();
     await type('IN', '16:45');

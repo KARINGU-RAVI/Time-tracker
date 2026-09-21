@@ -102,6 +102,19 @@ test.describe('Today: checking in and out', () => {
     await expect(page.getByRole('timer', { name: 'Worked today' })).toHaveText('3:00:00');
   });
 
+  test('the manual entry opens with the current time filled in, and "still inside" can be saved straight away', async ({ page }) => {
+    await createAccount(page.request);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Add time manually' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByLabel('IN', { exact: true })).toHaveValue(/^\d{2}:\d{2}$/); // hours and minutes only
+    await dialog.getByLabel('Still inside (no OUT yet)').check();
+    await expect(dialog.getByRole('button', { name: 'Save session' })).toBeEnabled();
+    await dialog.getByRole('button', { name: 'Save session' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByText('Inside office')).toBeVisible();
+  });
+
   test('a time in the future is refused', async ({ page, request }) => {
     await createAccount(page.request);
     await page.goto('/');

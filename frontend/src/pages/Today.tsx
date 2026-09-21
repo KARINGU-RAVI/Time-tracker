@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, LogIn, LogOut, Palmtree, Plus } from 'lucide-react';
-import { formatClockDuration, formatDuration, istClockSeconds } from '@oht/engine';
+import { formatClockDuration, formatDuration, istClock, istClockSeconds } from '@oht/engine';
 import { AddSessionDialog } from '@/components/AddSessionDialog';
 import { ProgressRing } from '@/components/ProgressRing';
 import { SessionList } from '@/components/SessionList';
@@ -284,7 +284,7 @@ export default function Today() {
         </div>
       </div>
 
-      <AddSessionDialog date={day.date} open={addOpen} onOpenChange={setAddOpen} defaultIn={nowClock} />
+      <AddSessionDialog date={day.date} open={addOpen} onOpenChange={setAddOpen} defaultIn={istClock(serverNow)} />
     </div>
   );
 }

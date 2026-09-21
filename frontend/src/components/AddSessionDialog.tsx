@@ -46,7 +46,7 @@ export function AddSessionDialog({ date, open, onOpenChange, session, defaultIn,
       setStillInside(session.outTime === null && !askForOut);
       setNextDay(session.outTime !== null && istDateOf(Date.parse(session.outTime)) !== date);
     } else {
-      setIn(defaultIn ?? '');
+      setIn((defaultIn ?? '').slice(0, 5)); // HH:MM only: a value with seconds would look filled in but could not be saved
       setOut('');
       setStillInside(false);
       setNextDay(false);
