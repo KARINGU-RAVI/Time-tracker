@@ -49,11 +49,26 @@ describe('netlify.toml', () => {
     for (const pattern of files) expect(existsSync(path.join(ROOT, pattern.replace(/\/\*\*$/, ''))), pattern).toBe(true);
   });
 
-  it('sends /api/* to the function (forced, first) and everything else to the app (last)', () => {
+  it('forwards the old Netlify address first, then sends /api/* to the function (forced), and everything else to the app (last)', () => {
     const r = toml.redirects;
-    expect(r[0]).toEqual({ from: '/api/*', to: '/.netlify/functions/api/:splat', status: 200, force: true });
+    // The old address forwards to the real one (all pages, and both http and https).
+    const old = r.filter((x) => x.from.includes('office-time-trackerr.netlify.app'));
+    expect(old.map((x) => x.from)).toEqual(['https://office-time-trackerr.netlify.app/*', 'http://office-time-trackerr.netlify.app/*']);
+    for (const x of old) expect(x).toMatchObject({ to: 'https://hours.ravikaringu.me/:splat', status: 301, force: true });
+    expect(r.slice(0, 2)).toEqual(old); // they must come first, or the app rules would answer the old address
+    const api = r.findIndex((x) => x.from === '/api/*');
+    expect(r[api]).toEqual({ from: '/api/*', to: '/.netlify/functions/api/:splat', status: 200, force: true });
+    expect(api).toBe(2);
     expect(r.at(-1)).toMatchObject({ from: '/*', to: '/index.html', status: 200 });
-    expect(r.findIndex((x) => x.from === '/api/*')).toBeLessThan(r.findIndex((x) => x.from === '/*'));
+    expect(api).toBeLessThan(r.findIndex((x) => x.from === '/*'));
+  });
+
+  it('serves the installable-app files with the right cache rules (the service worker is never cached for long)', () => {
+    const rule = (p: string) => toml.headers.find((h) => h.for === p)?.values;
+    expect(rule('/sw.js')).toMatchObject({ 'Cache-Control': 'no-cache' });
+    expect(rule('/manifest.webmanifest')).toMatchObject({ 'Content-Type': 'application/manifest+json' });
+    expect(rule('/offline.html')).toMatchObject({ 'Cache-Control': 'no-cache' });
+    for (const f of ['sw.js', 'manifest.webmanifest', 'offline.html']) expect(existsSync(path.join(ROOT, 'frontend/public', f)), f).toBe(true);
   });
 
   it('sets strict security headers, with a policy that still allows Google sign-in', () => {

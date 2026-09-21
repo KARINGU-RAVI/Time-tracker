@@ -1,5 +1,6 @@
 import { CalendarHeart, ChevronRight, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { InstallCard } from '@/components/InstallCard';
 import { Card } from '@/components/ui/primitives';
 
 const ITEMS = [
@@ -11,6 +12,7 @@ export default function More() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">More</h1>
+      <InstallCard />
       {ITEMS.map(({ to, label, hint, icon: Icon }) => (
         <Link key={to} to={to}>
           <Card className="flex items-center gap-3 hover:bg-muted">
