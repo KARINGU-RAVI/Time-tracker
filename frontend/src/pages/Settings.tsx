@@ -140,9 +140,12 @@ function LeaderboardCard() {
               aria-label="Show me on the leaderboard"
               disabled={setVisibility.isPending}
               onClick={() => setVisibility.mutate({ optedIn: !optedIn })}
-              className={cn('relative h-7 w-12 shrink-0 rounded-full transition-colors', optedIn ? 'bg-primary' : 'bg-muted')}
+              className={cn(
+                'relative h-7 w-12 shrink-0 rounded-full border transition-colors',
+                optedIn ? 'border-primary bg-primary' : 'border-line bg-ink-soft/25',
+              )}
             >
-              <span className={cn('absolute top-1 h-5 w-5 rounded-full bg-card shadow transition-transform', optedIn ? 'translate-x-6' : 'translate-x-1')} />
+              <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-card shadow-md transition-transform', optedIn ? 'translate-x-[1.375rem]' : 'translate-x-0.5')} />
             </button>
           </div>
 
