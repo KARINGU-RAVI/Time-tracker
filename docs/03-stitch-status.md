@@ -17,6 +17,8 @@ Stitch projects (private, in the user's Google account):
 | Holidays + import preview | d043c4186f8b4c69989e2c6d1e00812d, 10f41f3a973b4f36842cc925837bb5dd | 60e225be5ca340879162dbb1e3ab184c |
 | Settings | d7ea0eb755544268ba497ddf0345a99c | 976769c3d482485f9a998ea85ca770ae |
 | Login (+ error state) | ae8d5d05f1c94b86818dd546da6b8179 | 9b01a4ad822c4564b474a9f03bbacc63 |
+| Leaderboard (opted-in + not-opted-in states) | 504c15bc88dc4f92b66fd443b87c8e4d | 0fd969f0f03440f3b88d1afea9c816a0 |
+| Leaderboard, opted-out state (desktop only; mobile has it as a second frame on the same screen) | — | c0cc7e79747d4d4cb5ab443902d76198 |
 
 ## Known issues
 - Stitch previews do not refresh after in-place edits (desktop Today, desktop Summary): verify visually in the Stitch UI.

@@ -104,6 +104,54 @@ export function useRules() {
   return useQuery({ queryKey: ['rules'], queryFn: () => get<{ rules: WorkRule[] }>('/rules'), staleTime: FRESH.reference });
 }
 
+export interface LeaderboardEntry {
+  rank: number;
+  displayName: string;
+  pct: number;
+  isYou: boolean;
+}
+export interface Leaderboard {
+  period: { start: string; end: string; throughDate: string };
+  you: { optedIn: boolean; pct: number | null; rank: number | null };
+  entries: LeaderboardEntry[];
+}
+
+export function useLeaderboardWeek(date?: string) {
+  return useQuery({
+    queryKey: ['leaderboard', 'week', date ?? 'current'],
+    queryFn: () => get<Leaderboard>('/leaderboard/week', date ? { date } : undefined),
+    staleTime: FRESH.data,
+  });
+}
+
+export function useLeaderboardMonth(year: number, month: number) {
+  return useQuery({
+    queryKey: ['leaderboard', 'month', year, month],
+    queryFn: () => get<Leaderboard>('/leaderboard/month', { year, month }),
+    staleTime: FRESH.data,
+  });
+}
+
+export interface LeaderboardVisibility {
+  optedIn: boolean;
+  displayName: string | null;
+}
+
+export function useLeaderboardVisibility() {
+  return useQuery({ queryKey: ['leaderboard', 'visibility'], queryFn: () => get<LeaderboardVisibility>('/leaderboard/visibility'), staleTime: FRESH.reference });
+}
+
+export function useSetLeaderboardVisibility() {
+  const qc = useQueryClient();
+  return useMutation<LeaderboardVisibility, ApiError, { optedIn: boolean; displayName?: string | null }>({
+    mutationFn: (b) => put('/leaderboard/visibility', b),
+    onSuccess: (data) => {
+      qc.setQueryData(['leaderboard', 'visibility'], data);
+      qc.invalidateQueries({ queryKey: ['leaderboard'] });
+    },
+  });
+}
+
 /**
  * Anything that changes attendance, leave or holidays can change many derived numbers
  * (day, week, month, balances), so all cached data is refreshed. Simple and always correct.

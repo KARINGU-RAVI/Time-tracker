@@ -1,9 +1,10 @@
-import { CalendarHeart, ChevronRight, Settings } from 'lucide-react';
+import { CalendarHeart, ChevronRight, Settings, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { InstallCard } from '@/components/InstallCard';
 import { Card } from '@/components/ui/primitives';
 
 const ITEMS = [
+  { to: '/leaderboard', label: 'Leaderboard', hint: 'See how you compare with colleagues who opt in', icon: Trophy },
   { to: '/holidays', label: 'Holidays', hint: 'Company and optional holidays, import a calendar', icon: CalendarHeart },
   { to: '/settings', label: 'Settings', hint: 'Work rule, appearance, account', icon: Settings },
 ];

@@ -97,6 +97,10 @@ model UserSettings {
   employeeId        String?
   designation       String?
   businessUnit      String?
+  /** Opt-in: appear on colleagues' leaderboard. Off by default; nobody is shown without asking. */
+  leaderboardOptIn      Boolean @default(false)
+  /** Name shown on the leaderboard when opted in. Falls back to User.name, then "Anonymous". */
+  leaderboardDisplayName String?
   updatedAt         DateTime @updatedAt @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
