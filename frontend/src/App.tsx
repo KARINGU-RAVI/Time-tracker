@@ -9,6 +9,7 @@ import Calendar from '@/pages/Calendar';
 import DayDetail from '@/pages/DayDetail';
 import Holidays from '@/pages/Holidays';
 import Landing from '@/pages/Landing';
+import Leaderboard from '@/pages/Leaderboard';
 import Leave from '@/pages/Leave';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ResetPassword from '@/pages/auth/ResetPassword';
@@ -113,6 +114,7 @@ function Gate() {
         <Route path="leave" element={<Leave />} />
         <Route path="summary" element={<Summary />} />
         <Route path="more" element={<More />} />
+        <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="holidays" element={<Holidays />} />
         <Route path="settings" element={<Settings />} />
         <Route path="signin" element={<Navigate to="/" replace />} />

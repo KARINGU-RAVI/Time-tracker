@@ -10,6 +10,7 @@ import { authRoutes, csrfGuard, type AuthConfig } from './routes/auth';
 import { dashboardRoutes } from './routes/dashboard';
 import { holidayImageRoutes } from './routes/holidayImage';
 import { holidayRoutes } from './routes/holidays';
+import { leaderboardRoutes } from './routes/leaderboard';
 import { leaveRoutes } from './routes/leave';
 import { ruleRoutes } from './routes/rules';
 import { requireSetup, setupRoutes } from './routes/setup';
@@ -64,6 +65,7 @@ export function createApp(deps: AppDeps) {
   api.use(holidayImageRoutes(deps));
   api.use(holidayRoutes(deps));
   api.use(leaveRoutes(deps));
+  api.use(leaderboardRoutes(deps));
   api.use((_req, _res, next) => next(new ApiError(404, 'NOT_FOUND', 'That endpoint does not exist.')));
   app.use('/api', api);
 
