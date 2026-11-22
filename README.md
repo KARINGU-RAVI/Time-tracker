@@ -2,6 +2,8 @@
 
 Personal office-hours tracker. Records raw IN/OUT sessions and calculates everything else on read.
 
+[▶ Demo video](https://drive.google.com/file/d/1kbdeqNOL57qdmBS32H6mWk8x-Uln3Syt/view) · [🌐 Live app](https://hours.ravikaringu.me)
+
 ## Layout
 
 ```
